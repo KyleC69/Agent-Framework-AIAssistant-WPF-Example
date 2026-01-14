@@ -1,0 +1,213 @@
+﻿<Window x:Class="AgentOrch.ChatApp.Wpf.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:vm="clr-namespace:AgentOrch.ChatApp.Wpf.ViewModels"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:controls="clr-namespace:AgentOrch.ChatApp.Wpf.Controls"
+        mc:Ignorable="d" Loaded="Window_Loaded"
+        Title="AgentOrch Chat" Height="720" Width="980"
+        Background="#FF0F0F10">
+
+
+    <Window.Resources>
+        <CornerRadius x:Key="BubbleRadius">12</CornerRadius>
+
+        <SolidColorBrush x:Key="UserBubbleBrush" Color="#FF512BD4" />
+        <SolidColorBrush x:Key="AgentBubbleBrush" Color="#FF2D2D30" />
+        <SolidColorBrush x:Key="SystemBubbleBrush" Color="#FF3A3A3D" />
+        <SolidColorBrush x:Key="BubbleForegroundBrush" Color="White" />
+
+        <DataTemplate x:Key="UserMessageTemplate" DataType="{x:Type vm:ChatMessageViewModel}">
+            <Grid Margin="12,6">
+                <Border
+                    HorizontalAlignment="Right"
+                    Background="{StaticResource UserBubbleBrush}"
+                    CornerRadius="{StaticResource BubbleRadius}"
+                    MaxWidth="680"
+                    Padding="12,10">
+                    <TextBox
+                        Text="{Binding Text}"
+                        TextWrapping="Wrap"
+                        BorderThickness="0"
+                        Background="Transparent"
+                        Foreground="{StaticResource BubbleForegroundBrush}"
+                        IsReadOnly="True"
+                        IsReadOnlyCaretVisible="True" />
+                </Border>
+            </Grid>
+        </DataTemplate>
+
+        <DataTemplate x:Key="AgentMessageTemplate" DataType="{x:Type vm:ChatMessageViewModel}">
+            <Grid Margin="12,6">
+                <Border
+                    HorizontalAlignment="Left"
+                    Background="{StaticResource AgentBubbleBrush}"
+                    CornerRadius="{StaticResource BubbleRadius}"
+                    MaxWidth="680"
+                    Padding="12,10">
+                    <controls:MarkdownTextBlock MarkdownText="{Binding Text}" />
+                </Border>
+            </Grid>
+        </DataTemplate>
+
+        <DataTemplate x:Key="SystemMessageTemplate" DataType="{x:Type vm:ChatMessageViewModel}">
+            <Grid Margin="12,6">
+                <Border
+                    HorizontalAlignment="Center"
+                    Background="{StaticResource SystemBubbleBrush}"
+                    CornerRadius="{StaticResource BubbleRadius}"
+                    MaxWidth="820"
+                    Padding="12,10"
+                    Opacity="0.9">
+                    <controls:MarkdownTextBlock MarkdownText="{Binding Text}" />
+                </Border>
+            </Grid>
+        </DataTemplate>
+
+        <Style x:Key="MessageListStyle" TargetType="ListBox">
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="ScrollViewer.VerticalScrollBarVisibility" Value="Auto" />
+            <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Disabled" />
+            <Setter Property="ScrollViewer.CanContentScroll" Value="False" />
+            <Setter Property="VirtualizingPanel.IsVirtualizing" Value="False" />
+        </Style>
+    </Window.Resources>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <!-- Header -->
+        <Border Grid.Row="0" Background="#FF17171A" Padding="16,14">
+            <DockPanel>
+                <StackPanel DockPanel.Dock="Left">
+                    <TextBlock Text="AgentOrch Chat" FontSize="18" FontWeight="SemiBold" Foreground="White" />
+                    <TextBlock Text="AI agent communication UI" Opacity="0.75" Foreground="White" />
+                </StackPanel>
+
+                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center"
+                            Margin="12,0,0,0">
+                    <ToggleButton
+                        Content="Orchestrated"
+                        Padding="10,6"
+                        Margin="0,0,12,0"
+                        Foreground="White"
+                        Background="#FF2D2D30"
+                        BorderBrush="#00000000"
+                        VerticalAlignment="Center" />
+
+                    <TextBlock Text="Working…" Foreground="White" Opacity="0.8" VerticalAlignment="Center">
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="Visibility" Value="Collapsed" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsBusy}" Value="True">
+                                        <Setter Property="Visibility" Value="Visible" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
+                    <ProgressBar Width="90" Height="6" IsIndeterminate="True" Margin="10,0,0,0"
+                                 VerticalAlignment="Center">
+                        <ProgressBar.Style>
+                            <Style TargetType="ProgressBar">
+                                <Setter Property="Visibility" Value="Collapsed" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsBusy}" Value="True">
+                                        <Setter Property="Visibility" Value="Visible" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </ProgressBar.Style>
+                    </ProgressBar>
+                </StackPanel>
+            </DockPanel>
+        </Border>
+
+        <!-- Messages -->
+        <ListBox x:Name="MessagesList"
+                 Grid.Row="1"
+                 Style="{StaticResource MessageListStyle}"
+                 ItemsSource="{Binding Messages}"
+                 SelectionMode="Extended">
+            <ListBox.ItemContainerStyle>
+                <Style TargetType="ListBoxItem">
+                    <Setter Property="Padding" Value="0" />
+                    <Setter Property="Margin" Value="0" />
+                    <Setter Property="BorderThickness" Value="0" />
+                    <Setter Property="Background" Value="Transparent" />
+                    <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                    <Setter Property="VerticalContentAlignment" Value="Center" />
+                    <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+                    <Setter Property="Template">
+                        <Setter.Value>
+                            <ControlTemplate TargetType="ListBoxItem">
+                                <ContentPresenter />
+                            </ControlTemplate>
+                        </Setter.Value>
+                    </Setter>
+                </Style>
+            </ListBox.ItemContainerStyle>
+
+            <ListBox.ItemTemplate>
+                <DataTemplate DataType="{x:Type vm:ChatMessageViewModel}">
+                    <ContentControl Content="{Binding}" IsHitTestVisible="True">
+                        <ContentControl.Style>
+                            <Style TargetType="ContentControl">
+                                <Setter Property="ContentTemplate" Value="{StaticResource AgentMessageTemplate}" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding Role}" Value="User">
+                                        <Setter Property="ContentTemplate" Value="{StaticResource UserMessageTemplate}" />
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding Role}" Value="System">
+                                        <Setter Property="ContentTemplate"
+                                                Value="{StaticResource SystemMessageTemplate}" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </ContentControl.Style>
+                    </ContentControl>
+                </DataTemplate>
+            </ListBox.ItemTemplate>
+        </ListBox>
+
+        <!-- Composer -->
+        <Border Grid.Row="2" Background="#FF17171A" Padding="16,12">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="12" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <TextBox
+                    Grid.Column="0"
+                    Text="{Binding DraftMessage, UpdateSourceTrigger=PropertyChanged}"
+                    Background="#FF0F0F10"
+                    Foreground="White"
+                    BorderBrush="#FF2D2D30"
+                    Padding="12,10"
+                    FontSize="14"
+                    MinHeight="44"
+                    VerticalContentAlignment="Center" />
+
+                <Button
+                    Grid.Column="2"
+                    Content="Send"
+                    Command="{Binding SendCommand}"
+                    IsDefault="True"
+                    Padding="16,10"
+                    MinHeight="44"
+                    Background="#FF512BD4"
+                    Foreground="White"
+                    BorderBrush="#00000000" />
+            </Grid>
+        </Border>
+    </Grid>
+</Window>
