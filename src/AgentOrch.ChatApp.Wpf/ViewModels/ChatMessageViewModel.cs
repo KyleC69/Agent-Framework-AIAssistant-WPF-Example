@@ -37,6 +37,10 @@ public sealed class ChatMessageViewModel : INotifyPropertyChanged
 
     public string? AuthorName { get; }
 
+
+
+
+
     public string Text
     {
         get => _text;
@@ -48,6 +52,10 @@ public sealed class ChatMessageViewModel : INotifyPropertyChanged
             OnPropertyChanged();
         }
     }
+
+
+
+
 
     public event PropertyChangedEventHandler? PropertyChanged;
 

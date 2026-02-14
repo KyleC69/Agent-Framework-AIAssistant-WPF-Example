@@ -1,35 +1,33 @@
-using System.Collections.ObjectModel;
-using System.ComponentModel;
-using System.Runtime.CompilerServices;
-using System.Windows;
 using System.Windows.Input;
-using System.Windows.Threading;
 
-using AgentOrch.ChatApp.Wpf.Services.Agents;
-using AgentOrch.ChatApp.Wpf.ToolFunctions;
+using AgentOrch.ChatApp.Wpf.Services;
 
 using CommunityToolkit.Mvvm.Input;
 
 using Microsoft.Agents.AI;
-using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Logging;
+
+using ChatHistory = AgentOrch.ChatApp.Wpf.Models.ChatHistory;
+
 
 
 
 namespace AgentOrch.ChatApp.Wpf.ViewModels;
 
 
-public sealed class MainViewModel : INotifyPropertyChanged
+
+
+
+public sealed class MainViewModel : BaseViewModel
 {
-    private readonly IAgentOrchestrator _agentOrchestrator;
-    private readonly ILoggerFactory? _factory;
+    private readonly IRelayCommand _cancelCommand;
+
+    private readonly ILoggerFactory _factory;
+    private readonly ILogger<MainViewModel> _logger;
     private readonly IAsyncRelayCommand _sendCommand;
-    private AIAgent? _agent;
-    private string _draftMessage = string.Empty;
-    private bool _isBusy;
     private bool _isConfigured;
-    private CancellationTokenSource? _sendCts;
-    private IAgentWorkflow? _workflow;
+    private CancellationTokenSource _sendCts = new();
+    private AgentSession _thread;
 
 
 
@@ -40,9 +38,14 @@ public sealed class MainViewModel : INotifyPropertyChanged
 
     public MainViewModel(ILoggerFactory factory)
     {
+        Messages = [];
+        ArgumentNullException.ThrowIfNull(factory);
         _sendCommand = new AsyncRelayCommand(SendAsync, CanSend);
         SendCommand = _sendCommand;
+        _cancelCommand = new RelayCommand(CancelSend, CanCancel);
+        CancelCommand = _cancelCommand;
         _factory = factory;
+        _logger = factory.CreateLogger<MainViewModel>();
     }
 
 
@@ -52,28 +55,120 @@ public sealed class MainViewModel : INotifyPropertyChanged
 
 
 
-    private AgentThread thread1 { get; set; }
-    private AgentThread thread2 { get; set; }
-
-
-    public ObservableCollection<ChatMessageViewModel> Messages { get; } = [];
+    public ChatHistory Messages { get; set; }
 
 
 
 
 
-    public string DraftMessage
+
+
+
+    public async Task<bool> ConfigureAgentAsync(CancellationToken cancellationToken = default)
     {
-        get => _draftMessage;
+
+        _isConfigured = true;
+        this.OnPropertyChanged();
+        _sendCommand.NotifyCanExecuteChanged();
+        _cancelCommand.NotifyCanExecuteChanged();
+        return true;
+    }
+
+
+
+
+
+
+
+
+    /// <summary>
+    ///     Sends the current draft message asynchronously using the configured AI agent.
+    /// </summary>
+    /// <remarks>
+    ///     This method processes the draft message, interacts with the AI agent using multiple threads,
+    ///     and handles the response. It ensures that the operation is performed only when the agent is
+    ///     properly configured and the application is not busy.
+    /// </remarks>
+    /// <returns>A <see cref="Task" /> representing the asynchronous operation.</returns>
+    /// <exception cref="InvalidOperationException">
+    ///     Thrown if the AI agent is not configured before invoking this method.
+    /// </exception>
+    private async Task SendAsync()
+    {
+
+
+        IsBusy = true;
+        _sendCts = new CancellationTokenSource();
+
+
+
+
+        try
+        {
+            AgentCoopDetailed coop = App.GetRequiredService<AgentCoopDetailed>();
+
+            var results = await coop.BuildAgentCoopDetailedAsync(UserMessage);
+
+            Messages.AddRange(results);
+
+            //   var decision = gatekeeper.Classify("How do I reset my password");
+        }
+        catch (OperationCanceledException)
+        {
+            _logger.LogInformation("Send operation canceled.");
+        }
+        catch (InvalidOperationException ex)
+        {
+            _logger.LogError(ex, "Invalid operation while sending the message.");
+            throw;
+        }
+        catch (ArgumentException ex)
+        {
+            _logger.LogError(ex, "Invalid argument while sending the message.");
+            throw;
+        }
+        finally
+        {
+            IsBusy = false;
+            _sendCts.Cancel();
+            _sendCts.Dispose();
+        }
+
+        _logger.LogTrace("Exiting Send method");
+    }
+
+
+
+
+
+
+
+
+    #region UI specific properties and commands
+
+    public ICommand SendCommand { get; }
+
+    public ICommand CancelCommand { get; }
+
+
+
+
+
+    public string UserMessage
+    {
+        get;
         set
         {
-            if (value == _draftMessage) return;
+            if (value == field)
+            {
+                return;
+            }
 
-            _draftMessage = value;
-            OnPropertyChanged();
+            field = value;
+            this.OnPropertyChanged();
             _sendCommand.NotifyCanExecuteChanged();
         }
-    }
+    } = string.Empty;
 
 
 
@@ -81,42 +176,19 @@ public sealed class MainViewModel : INotifyPropertyChanged
 
     public bool IsBusy
     {
-        get => _isBusy;
+        get;
         private set
         {
-            if (value == _isBusy) return;
+            if (value == field)
+            {
+                return;
+            }
 
-            _isBusy = value;
-            OnPropertyChanged();
+            field = value;
+            this.OnPropertyChanged();
             _sendCommand.NotifyCanExecuteChanged();
+            _cancelCommand.NotifyCanExecuteChanged();
         }
-    }
-
-
-
-
-
-    public ICommand SendCommand { get; }
-
-    public event PropertyChangedEventHandler? PropertyChanged;
-
-
-
-
-
-
-
-
-    private static void Ui(Action action)
-    {
-        Dispatcher? dispatcher = Application.Current?.Dispatcher;
-        if (dispatcher is null || dispatcher.CheckAccess())
-        {
-            action();
-            return;
-        }
-
-        dispatcher.Invoke(action);
     }
 
 
@@ -128,7 +200,9 @@ public sealed class MainViewModel : INotifyPropertyChanged
 
     private bool CanSend()
     {
-        return !IsBusy && !string.IsNullOrWhiteSpace(DraftMessage) && _isConfigured;
+        return !IsBusy
+               && _isConfigured
+               && !string.IsNullOrWhiteSpace(UserMessage);
     }
 
 
@@ -138,24 +212,9 @@ public sealed class MainViewModel : INotifyPropertyChanged
 
 
 
-    public async Task<bool> ConfigureAgentAsync(CancellationToken cancellationToken = default)
+    private bool CanCancel()
     {
-        var tools = new ToolBuilder().GetAiTools();
-
-        IChatClient client =
-            new OnnxChatClient("F:\\AI-Models\\phi3\\cpu_and_mobile\\cpu-int4-awq-block-128-acc-level-4");
-
-
-        _agent = client.CreateAIAgent(
-            "You are a senior programmer with 15 years of experience. You are polite and courteous and you try to solve the users tasks to the best of your ability.",
-            "Phi-3-128k", "A multi turn agent for coding and tool operations", tools, _factory);
-
-        thread1 = _agent.GetNewThread();
-        thread2 = _agent.GetNewThread();
-
-
-        _isConfigured = true;
-        return true;
+        return IsBusy;
     }
 
 
@@ -165,38 +224,18 @@ public sealed class MainViewModel : INotifyPropertyChanged
 
 
 
-    private async Task SendAsync()
+    private void CancelSend()
     {
-        var text = DraftMessage?.Trim();
-        if (string.IsNullOrWhiteSpace(text)) return;
-
-
-
-        IsBusy = true;
-        _sendCts?.Cancel();
-        _sendCts?.Dispose();
-        _sendCts = new CancellationTokenSource();
-
-        try
+        if (!IsBusy)
         {
-            await _agent.RunAsync("Hello! I need help with a coding task.", thread2);
-            await _agent.RunAsync("Can you assist me with using GitHub Models?", thread2);
+            return;
         }
-        finally
-        {
-            IsBusy = false;
-        }
+
+        _sendCts.Cancel();
     }
 
+    #endregion
 
 
 
-
-
-
-
-    private void OnPropertyChanged([CallerMemberName] string? propertyName = null)
-    {
-        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
-    }
 }

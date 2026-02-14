@@ -1,16 +1,7 @@
-﻿using AgentOrch.ChatApp.Wpf.Services.Agents;
-
-using Microsoft.Extensions.AI;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
+﻿namespace AgentOrch.ChatApp.Wpf.Services;
 
 
-
-namespace AgentOrch.ChatApp.Wpf.Services;
-
-
-public static class ServiceCollectionExtensions
+/*public static class ServiceCollectionExtensions
 {
     private static IServiceCollection AddAgentInfrastructure(
         this IServiceCollection services,
@@ -19,7 +10,7 @@ public static class ServiceCollectionExtensions
         // Microsoft.Extensions.AI chat client
         services.AddSingleton<IChatClient>(sp =>
         {
-            var logger = sp.GetService<ILogger<OnnxChatClient>>();
+          var logger = sp.GetService<ILogger<OnnxChatClient>>();
             var modelDir = configuration["Onnx:ModelDirectory"]
                            ?? configuration["ONNX_MODEL_DIRECTORY"]
                            ?? configuration["OnnxModelDirectory"];
@@ -50,9 +41,7 @@ public static class ServiceCollectionExtensions
 
 
 
-
-
-
+            */
 /*
 
     // Back-compat for existing call-sites.
@@ -62,4 +51,3 @@ public static class ServiceCollectionExtensions
     {
         //   return services.AddAgentInfrastructure(configuration);
     }*/
-}

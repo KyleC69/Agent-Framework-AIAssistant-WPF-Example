@@ -1,6 +1,6 @@
-﻿	##This repo is intended to demonstrate the capabilities of AI agents in orchestrating complex tasks.
+﻿	**This repo is intended to demonstrate the capabilities of AI Agent Framework in applications.**
 
-	##*
+	
 
 	##*Copilot Instructions*##
 	

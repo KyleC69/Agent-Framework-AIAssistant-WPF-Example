@@ -86,12 +86,9 @@ public class OutputMarkDownPlugin
         while ((line = sr.ReadLine()) is not null)
         {
             var trimmed = line.TrimStart();
-            if (trimmed.StartsWith("```", StringComparison.Ordinal) && line.Length != trimmed.Length)
-                sb.Append(trimmed);
-            else
-                sb.Append(line);
+            _ = trimmed.StartsWith("```", StringComparison.Ordinal) && line.Length != trimmed.Length ? sb.Append(trimmed) : sb.Append(line);
 
-            sb.Append('\n');
+            _ = sb.Append('\n');
         }
 
         return sb.ToString();

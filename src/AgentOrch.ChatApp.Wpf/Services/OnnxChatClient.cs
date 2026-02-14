@@ -1,27 +1,23 @@
-using System.Collections.Concurrent;
 using System.Runtime.CompilerServices;
 using System.Text;
 
 using Microsoft.Extensions.AI;
-using Microsoft.Extensions.Logging;
 using Microsoft.ML.OnnxRuntimeGenAI;
 
 
 
-public sealed class OnnxChatClient : IChatClient
+namespace AgentOrch.ChatApp.Wpf.Services;
+
+
+public sealed class OnnxChatClient : IChatClient, IDisposable, IAsyncDisposable
 {
-    private readonly ILogger<OnnxChatClient>? _logger;
-    private readonly ConcurrentDictionary<(Type type, object? key), object?> _services = new();
-
-    private readonly string _modelDirectory;
-    private readonly string _systemPrompt;
-    private readonly int _maxLength;
-    private readonly int _maxNewTokens;
-
-    private readonly object _gate = new();
-    private Model? _model;
-    private Tokenizer? _tokenizer;
+    private readonly string _modelPath;
+    private readonly int _outputTokens;
+    private readonly string? _systemPrompt;
+    private readonly Tokenizer? _tokenizer;
     private bool _disposed;
+
+    private Model? _model;
 
 
 
@@ -31,26 +27,24 @@ public sealed class OnnxChatClient : IChatClient
 
 
     public OnnxChatClient(
-        string modelDirectory,
-        ILogger<OnnxChatClient>? logger = null,
+        string modelPath,
         string? systemPrompt = null,
-        int maxLength = 2048,
-        int maxNewTokens = 512)
+        int outputTokens = 512)
     {
-        if (string.IsNullOrWhiteSpace(modelDirectory))
-            throw new ArgumentException("Model directory is required.", nameof(modelDirectory));
+        if (string.IsNullOrWhiteSpace(modelPath))
+        {
+            throw new ArgumentException("Model path must be provided.", nameof(modelPath));
+        }
 
-        _modelDirectory = modelDirectory;
-        _logger = logger;
-        _systemPrompt = string.IsNullOrWhiteSpace(systemPrompt) ? "You are a helpful assistant." : systemPrompt;
+        _modelPath = modelPath;
 
-        if (maxLength <= 0) throw new ArgumentOutOfRangeException(nameof(maxLength));
-        if (maxNewTokens <= 0) throw new ArgumentOutOfRangeException(nameof(maxNewTokens));
-        _maxLength = maxLength;
-        _maxNewTokens = maxNewTokens;
+        _systemPrompt = systemPrompt;
+        _outputTokens = outputTokens;
 
-        // Basic IServiceProvider behavior.
-        _services.TryAdd((typeof(IChatClient), null), this);
+
+
+        _model = new Model(_modelPath);
+        _tokenizer = new Tokenizer(_model);
     }
 
 
@@ -60,18 +54,20 @@ public sealed class OnnxChatClient : IChatClient
 
 
 
-    public void Dispose()
+    public ValueTask DisposeAsync()
     {
-        if (_disposed) return;
-        _disposed = true;
-
-        // Tokenizer/model are unmanaged wrappers.
-        _tokenizer?.Dispose();
-        _model?.Dispose();
-
-        _tokenizer = null;
-        _model = null;
+        Dispose();
+        return ValueTask.CompletedTask;
     }
+
+
+
+
+
+
+
+
+    // ------------------ Non‑streaming ------------------
 
 
 
@@ -89,17 +85,23 @@ public sealed class OnnxChatClient : IChatClient
         ThrowIfDisposed();
 
         StringBuilder sb = new();
+
         await foreach (ChatResponseUpdate update in GetStreamingResponseAsync(messages, options, cancellationToken)
                            .ConfigureAwait(false))
-        {
-            if (!string.IsNullOrEmpty(update.Text)) sb.Append(update.Text);
-        }
+            if (!string.IsNullOrEmpty(update.Text))
+                sb.Append(update.Text);
 
-        // Keep result shape minimal and compatible. Some preview versions include different members.
-        // The common constructor takes a ChatMessage.
-        var assistant = new ChatMessage(ChatRole.Assistant, sb.ToString());
-        return new ChatResponse(assistant);
+        return new ChatResponse(new ChatMessage(ChatRole.Assistant, sb.ToString()));
     }
+
+
+
+
+
+
+
+
+    // ------------------ Streaming ------------------
 
 
 
@@ -117,69 +119,49 @@ public sealed class OnnxChatClient : IChatClient
         ThrowIfDisposed();
         cancellationToken.ThrowIfCancellationRequested();
 
-        EnsureModelLoaded();
-        var model = _model!;
-        var tokenizer = _tokenizer!;
+        EnsureLoaded();
 
-        string prompt = BuildPrompt(messages, _systemPrompt);
+        var prompt = BuildPrompt(messages, _systemPrompt);
 
-        var generatorParams = new GeneratorParams(model);
-        using var inputSequences = tokenizer.Encode(prompt);
+        using Sequences? sequences = _tokenizer!.Encode(prompt);
+        if (sequences is null || sequences.NumSequences == 0)
+            throw new InvalidOperationException("Tokenizer returned no sequences for the prompt.");
 
-        // max_length is the hard cap for total sequence length, including prompt.
-        generatorParams.SetSearchOption("max_length", _maxLength);
+        var promptTokens = sequences[0].Length;
+        var maxLength = promptTokens + _outputTokens;
 
-        // Many models also respect max_new_tokens; if unsupported, it will be ignored.
-        generatorParams.SetSearchOption("max_new_tokens", _maxNewTokens);
+        GeneratorParams genParams = new(_model!);
+        genParams.SetSearchOption("max_length", maxLength);
+        genParams.SetSearchOption("temperature", options?.Temperature ?? 0.7);
+        genParams.SetSearchOption("top_p", options?.TopP ?? 0.9);
+        genParams.SetSearchOption("do_sample", true);
 
-        SetInputSequences(generatorParams, inputSequences);
+        using TokenizerStream? stream = _tokenizer.CreateStream();
+        using Generator generator = new(_model!, genParams);
 
-        // Capture is optional; ignore failures.
-        try
-        {
-            generatorParams.TryGraphCaptureWithMaxBatchSize(1);
-        }
-        catch (Exception ex)
-        {
-            _logger?.LogDebug(ex, "ONNX GenAI graph capture was not available.");
-        }
+        generator.AppendTokenSequences(sequences);
 
-        using var tokenizerStream = tokenizer.CreateStream();
-        using var generator = new Generator(model, generatorParams);
-
-        StringBuilder fullText = new();
         while (!generator.IsDone())
         {
             cancellationToken.ThrowIfCancellationRequested();
 
-            string? part;
-            try
+            generator.GenerateNextToken();
+            var seq = generator.GetSequence(0);
+            if (seq.Length == 0)
             {
-                GenerateNextToken(generator);
-                part = tokenizerStream.Decode(generator.GetSequence(0)[^1]);
-            }
-            catch (OperationCanceledException)
-            {
-                throw;
-            }
-            catch (Exception ex)
-            {
-                _logger?.LogError(ex, "ONNX GenAI inference failed.");
-                throw new InvalidOperationException("ONNX GenAI inference failed.", ex);
+                await Task.Yield();
+                continue;
             }
 
+            var part = stream.Decode(seq[^1]);
             if (string.IsNullOrEmpty(part))
             {
                 await Task.Yield();
                 continue;
             }
 
-            fullText.Append(part);
-            if (ContainsStopToken(fullText)) yield break;
+            yield return new ChatResponseUpdate(ChatRole.Assistant, part);
 
-            yield return CreateUpdate(part);
-
-            // Let the UI breathe in WPF.
             await Task.Yield();
         }
     }
@@ -193,11 +175,7 @@ public sealed class OnnxChatClient : IChatClient
 
     public object? GetService(Type serviceType, object? serviceKey = null)
     {
-        ArgumentNullException.ThrowIfNull(serviceType);
-        ThrowIfDisposed();
-
-        _services.TryGetValue((serviceType, serviceKey), out var value);
-        return value;
+        return App.Services?.GetService(serviceType);
     }
 
 
@@ -207,12 +185,22 @@ public sealed class OnnxChatClient : IChatClient
 
 
 
-    public void SetService(Type serviceType, object? serviceKey, object? instance)
-    {
-        ArgumentNullException.ThrowIfNull(serviceType);
-        ThrowIfDisposed();
+    // ------------------ Dispose ------------------
 
-        _services[(serviceType, serviceKey)] = instance;
+
+
+
+
+
+
+
+    public void Dispose()
+    {
+        if (_disposed) return;
+        _disposed = true;
+
+        _tokenizer?.Dispose();
+        _model?.Dispose();
     }
 
 
@@ -222,27 +210,18 @@ public sealed class OnnxChatClient : IChatClient
 
 
 
-    private void EnsureModelLoaded()
+    // ------------------ Required by IChatClient ------------------
+
+
+
+
+
+
+
+
+    public TService? GetService<TService>() where TService : class
     {
-        if (_model is not null && _tokenizer is not null) return;
-
-        lock (_gate)
-        {
-            if (_model is not null && _tokenizer is not null) return;
-
-            try
-            {
-                _model = new Model(_modelDirectory);
-                _tokenizer = new Tokenizer(_model);
-            }
-            catch (Exception ex)
-            {
-                _logger?.LogError(ex, "Failed to load ONNX GenAI model from '{ModelDirectory}'.", _modelDirectory);
-                throw new InvalidOperationException(
-                    $"Failed to load ONNX GenAI model from '{_modelDirectory}'. Ensure the model files are present.",
-                    ex);
-            }
-        }
+        return null;
     }
 
 
@@ -252,116 +231,65 @@ public sealed class OnnxChatClient : IChatClient
 
 
 
-    private static string BuildPrompt(IEnumerable<ChatMessage> messages, string defaultSystemPrompt)
-    {
-        // Default to Phi-3 style prompt format.
-        // If the app passes explicit system role messages, preserve them.
-        const string systemTag = "<|system|>";
-        const string userTag = "<|user|>";
-        const string assistantTag = "<|assistant|>";
-        const string endTag = "<|end|>";
+    // ------------------ Helpers ------------------
 
+
+
+
+
+
+
+
+    private void EnsureLoaded()
+    {
+        if (_model is null)
+            _model = new Model(_modelPath);
+
+        if (_tokenizer is null) throw new InvalidOperationException("Tokenizer is not initialized.");
+    }
+
+
+
+
+
+
+
+
+    private static string BuildPrompt(IEnumerable<ChatMessage> messages, string? systemPrompt)
+    {
         StringBuilder sb = new();
 
-        bool hasSystem = false;
-        foreach (ChatMessage m in messages)
+        if (!string.IsNullOrWhiteSpace(systemPrompt))
         {
-            if (m.Role == ChatRole.System) { hasSystem = true; break; }
-        }
-
-        if (!hasSystem && !string.IsNullOrWhiteSpace(defaultSystemPrompt))
-        {
-            sb.Append(systemTag).Append(defaultSystemPrompt).Append(endTag);
+            sb.AppendLine(systemPrompt);
+            sb.AppendLine();
         }
 
         foreach (ChatMessage m in messages)
         {
-            string text = m.Text ?? string.Empty;
-            if (m.Role == ChatRole.System)
-            {
-                sb.Append(systemTag).Append(text).Append(endTag);
-            }
-            else if (m.Role == ChatRole.User)
-            {
-                sb.Append(userTag).Append(text).Append(endTag);
-            }
-            else if (m.Role == ChatRole.Assistant)
-            {
-                sb.Append(assistantTag).Append(text).Append(endTag);
-            }
-            else
-            {
-                // Unknown role: treat as user.
-                sb.Append(userTag).Append(text).Append(endTag);
-            }
+            var role =
+                m.Role == ChatRole.User ? "user" :
+                m.Role == ChatRole.Assistant ? "assistant" :
+                m.Role == ChatRole.System ? "system" :
+                "user";
+
+            sb.AppendLine($"{role}: {m.Text}");
         }
 
-        sb.Append(assistantTag);
+        sb.Append("assistant: ");
         return sb.ToString();
     }
 
-    private static bool ContainsStopToken(StringBuilder sb)
-    {
-        // Match common Phi stop tags. We check the accumulated text to avoid splitting tokens.
-        var s = sb.ToString();
-        return s.Contains("<|end|>", StringComparison.Ordinal)
-               || s.Contains("<|user|>", StringComparison.Ordinal)
-               || s.Contains("<|system|>", StringComparison.Ordinal);
-    }
 
-    private static ChatResponseUpdate CreateUpdate(string text)
-    {
-        ArgumentNullException.ThrowIfNull(text);
 
-        // ChatResponseUpdate API has shifted; keep it version tolerant.
-        // Prefer a parameterless ctor with a settable Text property.
-        var update = (ChatResponseUpdate?)Activator.CreateInstance(typeof(ChatResponseUpdate));
-        if (update is null) throw new InvalidOperationException("Unable to create ChatResponseUpdate instance.");
 
-        var p = update.GetType().GetProperty("Text");
-        if (p is not null && p.CanWrite) p.SetValue(update, text);
-        return update;
-    }
 
-    private static void SetInputSequences(GeneratorParams generatorParams, object sequences)
-    {
-        ArgumentNullException.ThrowIfNull(generatorParams);
-        ArgumentNullException.ThrowIfNull(sequences);
 
-        // Package versions vary: SetInputSequences, SetInputIds, SetInput, etc.
-        var t = generatorParams.GetType();
-        var mi = t.GetMethod("SetInputSequences")
-                 ?? t.GetMethod("SetInput")
-                 ?? t.GetMethod("SetInputIds")
-                 ?? t.GetMethod("SetInputTokens");
 
-        if (mi is null)
-            throw new MissingMethodException(t.FullName, "SetInputSequences/SetInput/SetInputIds/SetInputTokens");
-
-        mi.Invoke(generatorParams, [sequences]);
-    }
-
-    private static void GenerateNextToken(Generator generator)
-    {
-        ArgumentNullException.ThrowIfNull(generator);
-
-        // Some versions require ComputeLogits() then GenerateNextToken(), others just GenerateNextToken().
-        var t = generator.GetType();
-
-        var compute = t.GetMethod("ComputeLogits");
-        compute?.Invoke(generator, null);
-
-        var next = t.GetMethod("GenerateNextToken")
-                   ?? t.GetMethod("GenerateNext")
-                   ?? t.GetMethod("NextToken");
-        if (next is null)
-            throw new MissingMethodException(t.FullName, "GenerateNextToken/GenerateNext/NextToken");
-
-        next.Invoke(generator, null);
-    }
 
     private void ThrowIfDisposed()
     {
-        if (_disposed) throw new ObjectDisposedException(nameof(OnnxChatClient));
+        if (_disposed)
+            throw new ObjectDisposedException(nameof(OnnxChatClient));
     }
 }

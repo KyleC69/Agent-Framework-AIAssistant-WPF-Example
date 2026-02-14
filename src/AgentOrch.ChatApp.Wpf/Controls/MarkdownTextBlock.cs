@@ -38,7 +38,7 @@ public sealed class MarkdownTextBlock : UserControl
         };
 
 
-        viewer.SetBinding(MarkdownViewer.MarkdownProperty, new System.Windows.Data.Binding
+        _ = viewer.SetBinding(MarkdownViewer.MarkdownProperty, new System.Windows.Data.Binding
         {
             Source = this,
             Path = new PropertyPath(nameof(MarkdownText))

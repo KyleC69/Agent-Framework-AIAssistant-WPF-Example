@@ -3,6 +3,28 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
     <Application.Resources>
         <ResourceDictionary>
+            <Color x:Key="App.WindowBackgroundColor">DimGray</Color>
+            <Color x:Key="App.SurfaceColor">#FF17171A</Color>
+            <Color x:Key="App.ControlSurfaceColor">#FF2D2D30</Color>
+            <Color x:Key="App.AccentColor">#FF512BD4</Color>
+            <Color x:Key="App.TextPrimaryColor">#FFFFFFFF</Color>
+            <Color x:Key="App.TextSecondaryColor">#CCFFFFFF</Color>
+            <Color x:Key="App.ListForegroundColor">#FFF9EDED</Color>
+            <Color x:Key="App.BubbleAgentColor">#FF696969</Color>
+            <Color x:Key="App.BubbleSystemColor">#AA323A11</Color>
+            <Color x:Key="App.BubbleForegroundColor">Bisque</Color>
+
+            <SolidColorBrush x:Key="App.WindowBackgroundBrush" Color="{StaticResource App.WindowBackgroundColor}" />
+            <SolidColorBrush x:Key="App.SurfaceBrush" Color="{StaticResource App.SurfaceColor}" />
+            <SolidColorBrush x:Key="App.ControlSurfaceBrush" Color="{StaticResource App.ControlSurfaceColor}" />
+            <SolidColorBrush x:Key="App.AccentBrush" Color="{StaticResource App.AccentColor}" />
+            <SolidColorBrush x:Key="App.TextPrimaryBrush" Color="{StaticResource App.TextPrimaryColor}" />
+            <SolidColorBrush x:Key="App.TextSecondaryBrush" Color="{StaticResource App.TextSecondaryColor}" />
+            <SolidColorBrush x:Key="App.ListForegroundBrush" Color="{StaticResource App.ListForegroundColor}" />
+            <SolidColorBrush x:Key="App.BubbleAgentBrush" Color="{StaticResource App.BubbleAgentColor}" />
+            <SolidColorBrush x:Key="App.BubbleSystemBrush" Color="{StaticResource App.BubbleSystemColor}" />
+            <SolidColorBrush x:Key="App.BubbleForegroundBrush" Color="{StaticResource App.BubbleForegroundColor}" />
+
             <ResourceDictionary.MergedDictionaries>
                 <ResourceDictionary Source="pack://application:,,,/Markdig.Wpf;component/Themes/Generic.xaml" />
             </ResourceDictionary.MergedDictionaries>

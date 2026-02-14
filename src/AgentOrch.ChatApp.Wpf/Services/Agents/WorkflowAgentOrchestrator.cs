@@ -1,6 +1,5 @@
 using System.Reflection;
 
-using AgentOrch.ChatApp.Wpf.Models;
 using AgentOrch.ChatApp.Wpf.ToolFunctions;
 
 using Microsoft.Extensions.AI;
@@ -15,30 +14,11 @@ public sealed class WorkflowAgentOrchestrator(IChatClient chatClient, IServicePr
 {
     private readonly IChatClient _chatClient = chatClient;
     private readonly IServiceProvider _services = services;
-
-
-
-
-
-
-
-
-    public Task<IAgentWorkflow> CreateWorkflowAsync(SkAgentDefinition definition,
-        CancellationToken cancellationToken = default)
-    {
-        // For now the WPF app uses a single workflow that routes user prompts through the configured chat model.
-        // The SkAgentDefinition is still used as configuration input until the JSON schema is updated.
-        var tools = ToolRegistry.CreateTools(_services);
-        IAgentWorkflow workflow = new SingleChatWorkflow(_chatClient, definition, tools);
-        return Task.FromResult(workflow);
-    }
 }
 
-public interface IAgentOrchestrator
-{
-    Task<IAgentWorkflow> CreateWorkflowAsync(SkAgentDefinition definition,
-        CancellationToken cancellationToken = default);
-}
+
+
+
 
 public interface IAgentWorkflow
 {
@@ -55,13 +35,17 @@ public interface IAgentWorkflow
         CancellationToken cancellationToken = default);
 }
 
+
+
+
+
 internal sealed class SingleChatWorkflow(
     IChatClient chatClient,
-    SkAgentDefinition definition,
+    AgentDefinition definition,
     IReadOnlyList<object> tools) : IAgentWorkflow
 {
     private readonly IChatClient _chatClient = chatClient;
-    private readonly SkAgentDefinition _definition = definition;
+    private readonly AgentDefinition _definition = definition;
     private readonly IReadOnlyList<object> _tools = tools;
 
 
@@ -129,6 +113,10 @@ internal sealed class SingleChatWorkflow(
     }
 }
 
+
+
+
+
 internal static class ToolRegistry
 {
     public static IReadOnlyList<object> CreateTools(IServiceProvider services)
@@ -148,6 +136,10 @@ internal static class ToolRegistry
         ];
     }
 }
+
+
+
+
 
 internal static class ToolingSupport
 {
