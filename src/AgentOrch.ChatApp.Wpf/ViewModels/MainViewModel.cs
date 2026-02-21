@@ -1,18 +1,24 @@
-using System.Windows.Input;
+using System;
+using System.Threading;
+using System.Threading.Tasks;
 
-using AgentOrch.ChatApp.Wpf.Services;
+using AgentOrchestration.Wpf.Orchestration;
 
 using CommunityToolkit.Mvvm.Input;
 
 using Microsoft.Agents.AI;
+using Microsoft.Agents.AI.Workflows;
+using Microsoft.Agents.AI.Workflows.InProc;
+using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Logging;
 
-using ChatHistory = AgentOrch.ChatApp.Wpf.Models.ChatHistory;
+using ChatHistory = AgentOrchestration.Wpf.Models.ChatHistory;
+using ChatRole = Microsoft.Extensions.AI.ChatRole;
 
 
 
 
-namespace AgentOrch.ChatApp.Wpf.ViewModels;
+namespace AgentOrchestration.Wpf.ViewModels;
 
 
 
@@ -20,14 +26,18 @@ namespace AgentOrch.ChatApp.Wpf.ViewModels;
 
 public sealed class MainViewModel : BaseViewModel
 {
-    private readonly IRelayCommand _cancelCommand;
+    private static ILoggerFactory? _factory;
 
-    private readonly ILoggerFactory _factory;
+    private readonly IRelayCommand _cancelCommand;
+    private readonly IWorkflowExecutionEnvironment _environment;
+    private readonly InProcessExecutionEnvironment _inproc;
+
     private readonly ILogger<MainViewModel> _logger;
+    private readonly CheckpointManager _manager;
     private readonly IAsyncRelayCommand _sendCommand;
+
     private bool _isConfigured;
     private CancellationTokenSource _sendCts = new();
-    private AgentSession _thread;
 
 
 
@@ -40,12 +50,17 @@ public sealed class MainViewModel : BaseViewModel
     {
         Messages = [];
         ArgumentNullException.ThrowIfNull(factory);
+        _factory = factory;
         _sendCommand = new AsyncRelayCommand(SendAsync, CanSend);
         SendCommand = _sendCommand;
         _cancelCommand = new RelayCommand(CancelSend, CanCancel);
         CancelCommand = _cancelCommand;
-        _factory = factory;
         _logger = factory.CreateLogger<MainViewModel>();
+
+
+        _manager = CheckpointManager.CreateInMemory();
+        _inproc = InProcessExecution.Lockstep;
+        _environment = _inproc.WithCheckpointing(_manager);
     }
 
 
@@ -57,6 +72,8 @@ public sealed class MainViewModel : BaseViewModel
 
     public ChatHistory Messages { get; set; }
 
+    public bool IsModelReady { get; set; }
+
 
 
 
@@ -67,11 +84,118 @@ public sealed class MainViewModel : BaseViewModel
     public async Task<bool> ConfigureAgentAsync(CancellationToken cancellationToken = default)
     {
 
-        _isConfigured = true;
-        this.OnPropertyChanged();
+
+        OnPropertyChanged();
         _sendCommand.NotifyCanExecuteChanged();
         _cancelCommand.NotifyCanExecuteChanged();
+        _isConfigured = true;
         return true;
+    }
+
+
+
+
+
+
+
+
+    #region Message handling and UI helpers
+
+    private void AddDecoratedMessage(ChatMessage message)
+    {
+        string? sender = TryGetAgentName(message);
+        string prefix = BuildSenderPrefix(sender, message.Role);
+        string content = GetMessageText(message);
+
+        if (!string.IsNullOrEmpty(prefix) && !content.StartsWith(prefix, StringComparison.Ordinal))
+        {
+            Messages.Add(new ChatMessage(message.Role, prefix + content));
+            return;
+        }
+
+        Messages.Add(message);
+    }
+
+
+
+
+
+
+
+
+    private static string BuildSenderPrefix(string? sender, ChatRole role)
+    {
+        return !string.IsNullOrWhiteSpace(sender) ? $"{sender} ({role}): " : $"{role}: ";
+    }
+
+
+
+
+
+
+
+
+    private static bool MessageHasPrefix(ChatMessage message, string prefix)
+    {
+        if (string.IsNullOrEmpty(prefix))
+        {
+            return true;
+        }
+
+        string content = GetMessageText(message);
+        return content.StartsWith(prefix, StringComparison.Ordinal);
+    }
+
+
+
+
+
+
+
+
+    private static string GetMessageText(ChatMessage message)
+    {
+        return message.Contents is null || message.Contents.Count == 0 ? string.Empty : string.Concat(message.Contents);
+    }
+
+
+
+
+
+
+
+
+    private static string? TryGetAgentName(object? source)
+    {
+        if (source is null)
+        {
+            return null;
+        }
+
+        object? agentName = source.GetType().GetProperty("AgentName")?.GetValue(source);
+        if (agentName is string name && !string.IsNullOrWhiteSpace(name))
+        {
+            return name;
+        }
+
+        object? agent = source.GetType().GetProperty("Agent")?.GetValue(source);
+        if (agent is not null)
+        {
+            object? nameValue = agent.GetType().GetProperty("Name")?.GetValue(agent);
+            if (nameValue is string agentNameValue && !string.IsNullOrWhiteSpace(agentNameValue))
+            {
+                return agentNameValue;
+            }
+        }
+
+        object? authorName = source.GetType().GetProperty("AuthorName")?.GetValue(source);
+        if (authorName is string author && !string.IsNullOrWhiteSpace(author))
+        {
+            return author;
+        }
+
+        object? fallbackName = source.GetType().GetProperty("Name")?.GetValue(source);
+        return fallbackName is string fallback && !string.IsNullOrWhiteSpace(fallback) ? fallback : null;
     }
 
 
@@ -96,49 +220,44 @@ public sealed class MainViewModel : BaseViewModel
     private async Task SendAsync()
     {
 
-
         IsBusy = true;
         _sendCts = new CancellationTokenSource();
 
 
 
-
         try
         {
-            AgentCoopDetailed coop = App.GetRequiredService<AgentCoopDetailed>();
+            AIAgent flow = DoubleSequentialWorkflow.EntryPoint.CreateWorkflow().AsAIAgent();
 
-            var results = await coop.BuildAgentCoopDetailedAsync(UserMessage);
+            AgentResponse response = await flow.RunAsync(new ChatMessage(ChatRole.User, UserMessage));
 
-            Messages.AddRange(results);
-
-            //   var decision = gatekeeper.Classify("How do I reset my password");
+            foreach (ChatMessage message in response.Messages)
+            {
+                Messages.AddAssistantMessage(message.Text);
+            }
         }
         catch (OperationCanceledException)
         {
             _logger.LogInformation("Send operation canceled.");
         }
-        catch (InvalidOperationException ex)
+        catch (Exception ex) when (ex is InvalidOperationException or ArgumentException)
         {
-            _logger.LogError(ex, "Invalid operation while sending the message.");
-            throw;
-        }
-        catch (ArgumentException ex)
-        {
-            _logger.LogError(ex, "Invalid argument while sending the message.");
+            _logger.LogError(ex, "Error while sending the message.");
             throw;
         }
         finally
         {
             IsBusy = false;
+
+            // Cancel AFTER the workflow has fully completed
             _sendCts.Cancel();
             _sendCts.Dispose();
         }
 
-        _logger.LogTrace("Exiting Send method");
+        _logger.LogTrace("Exiting SendAsync");
     }
 
-
-
+    #endregion
 
 
 
@@ -146,9 +265,9 @@ public sealed class MainViewModel : BaseViewModel
 
     #region UI specific properties and commands
 
-    public ICommand SendCommand { get; }
+    public IAsyncRelayCommand SendCommand { get; }
 
-    public ICommand CancelCommand { get; }
+    public IRelayCommand CancelCommand { get; }
 
 
 
@@ -165,7 +284,7 @@ public sealed class MainViewModel : BaseViewModel
             }
 
             field = value;
-            this.OnPropertyChanged();
+            OnPropertyChanged();
             _sendCommand.NotifyCanExecuteChanged();
         }
     } = string.Empty;
@@ -185,7 +304,7 @@ public sealed class MainViewModel : BaseViewModel
             }
 
             field = value;
-            this.OnPropertyChanged();
+            OnPropertyChanged();
             _sendCommand.NotifyCanExecuteChanged();
             _cancelCommand.NotifyCanExecuteChanged();
         }

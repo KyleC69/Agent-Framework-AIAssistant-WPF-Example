@@ -1,11 +1,18 @@
-﻿using System.Collections.ObjectModel;
+﻿using System;
+using System.Collections.ObjectModel;
+using System.Threading;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
 
 
 
-namespace AgentOrch.ChatApp.Wpf.Controls;
+
+namespace AgentOrchestration.Wpf.Controls;
+
+
+
 
 
 /// <summary>
@@ -13,11 +20,11 @@ namespace AgentOrch.ChatApp.Wpf.Controls;
 ///     Step 1a) Using this custom control in a XAML file that exists in the current project.
 ///     Add this XmlNamespace attribute to the root element of the markup file where it is
 ///     to be used:
-///     xmlns:MyNamespace="clr-namespace:AgentOrch.ChatApp.Wpf.Controls"
+///     xmlns:MyNamespace="clr-namespace:AgentOrchestration.Wpf.Controls"
 ///     Step 1b) Using this custom control in a XAML file that exists in a different project.
 ///     Add this XmlNamespace attribute to the root element of the markup file where it is
 ///     to be used:
-///     xmlns:MyNamespace="clr-namespace:AgentOrch.ChatApp.Wpf.Controls;assembly=AgentOrch.ChatApp.Wpf.Controls"
+///     xmlns:MyNamespace="clr-namespace:AgentOrchestration.Wpf.Controls;assembly=AgentOrchestration.Wpf.Controls"
 ///     You will also need to add a project reference from the project where the XAML file lives
 ///     to this project and Rebuild to avoid compilation errors:
 ///     Right click on the target project in the Solution Explorer and
@@ -26,45 +33,45 @@ namespace AgentOrch.ChatApp.Wpf.Controls;
 ///     Go ahead and use your control in the XAML file.
 ///     <MyNamespace:AIToolUsageIndicators />
 /// </summary>
-public class AIToolUsageIndicators : Control
+public sealed class AIToolUsageIndicators : Control
 {
     public const int DefaultIndicatorCount = 5;
 
     public static readonly DependencyProperty IndicatorCountProperty =
-        DependencyProperty.Register(
-            nameof(IndicatorCount),
-            typeof(int),
-            typeof(AIToolUsageIndicators),
-            new FrameworkPropertyMetadata(DefaultIndicatorCount, OnIndicatorCountChanged),
-            ValidateIndicatorCount);
+            DependencyProperty.Register(
+                    nameof(IndicatorCount),
+                    typeof(int),
+                    typeof(AIToolUsageIndicators),
+                    new FrameworkPropertyMetadata(DefaultIndicatorCount, OnIndicatorCountChanged),
+                    ValidateIndicatorCount);
 
     public static readonly DependencyProperty IndicatorSizeProperty =
-        DependencyProperty.Register(
-            nameof(IndicatorSize),
-            typeof(double),
-            typeof(AIToolUsageIndicators),
-            new FrameworkPropertyMetadata(100d));
+            DependencyProperty.Register(
+                    nameof(IndicatorSize),
+                    typeof(double),
+                    typeof(AIToolUsageIndicators),
+                    new FrameworkPropertyMetadata(100d));
 
     public static readonly DependencyProperty OffBrushProperty =
-        DependencyProperty.Register(
-            nameof(OffBrush),
-            typeof(Brush),
-            typeof(AIToolUsageIndicators),
-            new FrameworkPropertyMetadata(Brushes.Red));
+            DependencyProperty.Register(
+                    nameof(OffBrush),
+                    typeof(Brush),
+                    typeof(AIToolUsageIndicators),
+                    new FrameworkPropertyMetadata(Brushes.Red));
 
     public static readonly DependencyProperty OnBrushProperty =
-        DependencyProperty.Register(
-            nameof(OnBrush),
-            typeof(Brush),
-            typeof(AIToolUsageIndicators),
-            new FrameworkPropertyMetadata(Brushes.LimeGreen));
+            DependencyProperty.Register(
+                    nameof(OnBrush),
+                    typeof(Brush),
+                    typeof(AIToolUsageIndicators),
+                    new FrameworkPropertyMetadata(Brushes.LimeGreen));
 
     public static readonly DependencyProperty HoldDurationProperty =
-        DependencyProperty.Register(
-            nameof(HoldDuration),
-            typeof(TimeSpan),
-            typeof(AIToolUsageIndicators),
-            new FrameworkPropertyMetadata(TimeSpan.FromSeconds(3), null, CoerceHoldDuration));
+            DependencyProperty.Register(
+                    nameof(HoldDuration),
+                    typeof(TimeSpan),
+                    typeof(AIToolUsageIndicators),
+                    new FrameworkPropertyMetadata(TimeSpan.FromSeconds(3), null, CoerceHoldDuration));
 
 
 
@@ -99,9 +106,7 @@ public class AIToolUsageIndicators : Control
 
 
     public int IndicatorCount
-    {
-        get => (int)GetValue(IndicatorCountProperty);
-        set => SetValue(IndicatorCountProperty, value);
+    { get => (int)GetValue(IndicatorCountProperty); set => SetValue(IndicatorCountProperty, value);
     }
 
 
@@ -109,9 +114,7 @@ public class AIToolUsageIndicators : Control
 
 
     public double IndicatorSize
-    {
-        get => (double)GetValue(IndicatorSizeProperty);
-        set => SetValue(IndicatorSizeProperty, value);
+    { get => (double)GetValue(IndicatorSizeProperty); set => SetValue(IndicatorSizeProperty, value);
     }
 
 
@@ -119,9 +122,7 @@ public class AIToolUsageIndicators : Control
 
 
     public Brush OffBrush
-    {
-        get => (Brush)GetValue(OffBrushProperty);
-        set => SetValue(OffBrushProperty, value);
+    { get => (Brush)GetValue(OffBrushProperty); set => SetValue(OffBrushProperty, value);
     }
 
 
@@ -129,9 +130,7 @@ public class AIToolUsageIndicators : Control
 
 
     public Brush OnBrush
-    {
-        get => (Brush)GetValue(OnBrushProperty);
-        set => SetValue(OnBrushProperty, value);
+    { get => (Brush)GetValue(OnBrushProperty); set => SetValue(OnBrushProperty, value);
     }
 
 
@@ -139,9 +138,7 @@ public class AIToolUsageIndicators : Control
 
 
     public TimeSpan HoldDuration
-    {
-        get => (TimeSpan)GetValue(HoldDurationProperty);
-        set => SetValue(HoldDurationProperty, value);
+    { get => (TimeSpan)GetValue(HoldDurationProperty); set => SetValue(HoldDurationProperty, value);
     }
 
 
@@ -164,7 +161,10 @@ public class AIToolUsageIndicators : Control
     /// </summary>
     public void TriggerIndicator(int index)
     {
-        if (index < 0 || index >= Indicators.Count) throw new ArgumentOutOfRangeException(nameof(index));
+        if (index < 0 || index >= Indicators.Count)
+        {
+            throw new ArgumentOutOfRangeException(nameof(index));
+        }
 
         Indicators[index].Pulse(HoldDuration);
     }
@@ -190,7 +190,10 @@ public class AIToolUsageIndicators : Control
 
     private static void OnIndicatorCountChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
     {
-        if (d is AIToolUsageIndicators control) control.EnsureIndicatorCount();
+        if (d is AIToolUsageIndicators control)
+        {
+            control.EnsureIndicatorCount();
+        }
     }
 
 
@@ -202,12 +205,21 @@ public class AIToolUsageIndicators : Control
 
     private void EnsureIndicatorCount()
     {
-        var target = IndicatorCount;
-        if (target < 1) target = 1;
+        int target = IndicatorCount;
+        if (target < 1)
+        {
+            target = 1;
+        }
 
-        while (Indicators.Count < target) Indicators.Add(new IndicatorState());
+        while (Indicators.Count < target)
+        {
+            Indicators.Add(new IndicatorState());
+        }
 
-        while (Indicators.Count > target) Indicators.RemoveAt(Indicators.Count - 1);
+        while (Indicators.Count > target)
+        {
+            Indicators.RemoveAt(Indicators.Count - 1);
+        }
     }
 
 
@@ -232,11 +244,11 @@ public class AIToolUsageIndicators : Control
     public sealed class IndicatorState : DependencyObject
     {
         public static readonly DependencyProperty IsOnProperty =
-            DependencyProperty.Register(
-                nameof(IsOn),
-                typeof(bool),
-                typeof(IndicatorState),
-                new FrameworkPropertyMetadata(false));
+                DependencyProperty.Register(
+                        nameof(IsOn),
+                        typeof(bool),
+                        typeof(IndicatorState),
+                        new FrameworkPropertyMetadata(false));
 
         private CancellationTokenSource? _cts;
 
@@ -245,9 +257,7 @@ public class AIToolUsageIndicators : Control
 
 
         public bool IsOn
-        {
-            get => (bool)GetValue(IsOnProperty);
-            private set => SetValue(IsOnProperty, value);
+        { get => (bool)GetValue(IsOnProperty); private set => SetValue(IsOnProperty, value);
         }
 
 
@@ -280,7 +290,10 @@ public class AIToolUsageIndicators : Control
             try
             {
                 await Task.Delay(holdDuration, cancellationToken);
-                if (!cancellationToken.IsCancellationRequested) IsOn = false;
+                if (!cancellationToken.IsCancellationRequested)
+                {
+                    IsOn = false;
+                }
             }
             catch (OperationCanceledException)
             {

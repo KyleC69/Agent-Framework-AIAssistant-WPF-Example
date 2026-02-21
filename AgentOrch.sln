@@ -5,7 +5,7 @@ VisualStudioVersion = 18.3.11415.281
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{827E0CD3-B72D-47B6-A68D-7590B98EB39B}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AgentOrch.ChatApp.Wpf", "src\AgentOrch.ChatApp.Wpf\AgentOrch.ChatApp.Wpf.csproj", "{DDEF642B-9423-48C6-A01B-67D742EF02E4}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AgentOrchestration.Wpf", "src\AgentOrch.ChatApp.Wpf\AgentOrchestration.Wpf.csproj", "{DDEF642B-9423-48C6-A01B-67D742EF02E4}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

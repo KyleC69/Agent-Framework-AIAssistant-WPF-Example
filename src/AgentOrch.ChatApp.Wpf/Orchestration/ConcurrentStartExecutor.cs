@@ -1,10 +1,16 @@
-﻿using Microsoft.Agents.AI.Workflows;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
+
+using Microsoft.Agents.AI.Workflows;
 using Microsoft.Extensions.AI;
 
 
 
 
-namespace AgentOrch.ChatApp.Wpf.Services.Orchestration;
+namespace AgentOrchestration.Wpf.Orchestration;
 
 
 
@@ -71,7 +77,7 @@ internal sealed class ConcurrentAggregationExecutor() :
 
         if (_messages.Count == 2)
         {
-            var formattedMessages = string.Join(Environment.NewLine,
+            string formattedMessages = string.Join(Environment.NewLine,
                     _messages.Select(m => $"{m.AuthorName}: {m.Text}"));
             await context.YieldOutputAsync(formattedMessages, cancellationToken);
         }

@@ -1,4 +1,12 @@
-﻿namespace AgentOrch.ChatApp.Wpf;
+﻿using System;
+
+
+
+
+namespace AgentOrchestration.Wpf;
+
+
+
 
 
 [Serializable]

@@ -1,4 +1,4 @@
-﻿namespace AgentOrch.ChatApp.Wpf.Services;
+﻿namespace AgentOrchestration.Wpf.Services;
 /*
     /// <summary>
     /// A chunk of text from a pdf document. Will also contain the page number and the source file.

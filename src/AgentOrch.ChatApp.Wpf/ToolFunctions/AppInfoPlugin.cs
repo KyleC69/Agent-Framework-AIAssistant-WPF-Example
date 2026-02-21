@@ -1,3 +1,4 @@
+using System;
 using System.ComponentModel;
 
 
@@ -5,7 +6,10 @@ using System.ComponentModel;
 // ReSharper disable once UnusedMember.Global // Methods aren't instantiated by user code but are necessary for reflection
 
 
-namespace AgentOrch.ChatApp.Wpf.ToolFunctions;
+namespace AgentOrchestration.Wpf.ToolFunctions;
+
+
+
 
 
 public sealed class AppInfoPlugin

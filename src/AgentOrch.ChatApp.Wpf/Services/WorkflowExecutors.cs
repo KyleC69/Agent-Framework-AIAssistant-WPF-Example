@@ -1,9 +1,15 @@
-﻿using Microsoft.Agents.AI.Workflows;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
+
+using Microsoft.Agents.AI.Workflows;
 
 
 
 
-namespace AgentOrch.ChatApp.Wpf;
+namespace AgentOrchestration.Wpf.Services;
 
 
 
@@ -14,10 +20,10 @@ internal sealed class WordCountingExecutor() : Executor<string, FileStats>("Word
     public override async ValueTask<FileStats> HandleAsync(string message, IWorkflowContext context, CancellationToken cancellationToken = default)
     {
         // Retrieve the file content from the shared state
-        var fileContent = await context.ReadStateAsync<string>(message, FileContentStateConstants.FileContentStateScope, cancellationToken)
+        string fileContent = await context.ReadStateAsync<string>(message, FileContentStateConstants.FileContentStateScope, cancellationToken)
                           ?? throw new InvalidOperationException("File content state not found");
 
-        var wordCount = fileContent.Split([' ', '\n', '\r'], StringSplitOptions.RemoveEmptyEntries).Length;
+        int wordCount = fileContent.Split([' ', '\n', '\r'], StringSplitOptions.RemoveEmptyEntries).Length;
 
         return new FileStats { WordCount = wordCount };
     }
@@ -32,10 +38,10 @@ internal sealed class ParagraphCountingExecutor() : Executor<string, FileStats>(
     public override async ValueTask<FileStats> HandleAsync(string message, IWorkflowContext context, CancellationToken cancellationToken = default)
     {
         // Retrieve the file content from the shared state
-        var fileContent = await context.ReadStateAsync<string>(message, FileContentStateConstants.FileContentStateScope, cancellationToken)
+        string fileContent = await context.ReadStateAsync<string>(message, FileContentStateConstants.FileContentStateScope, cancellationToken)
                           ?? throw new InvalidOperationException("File content state not found");
 
-        var paragraphCount = fileContent.Split(['\n', '\r'], StringSplitOptions.RemoveEmptyEntries).Length;
+        int paragraphCount = fileContent.Split(['\n', '\r'], StringSplitOptions.RemoveEmptyEntries).Length;
 
         return new FileStats { ParagraphCount = paragraphCount };
     }
@@ -63,8 +69,8 @@ internal sealed class AggregationExecutor() : Executor<FileStats>("AggregationEx
         if (_messages.Count == 2)
         {
             // Aggregate the results from both executors
-            var totalParagraphCount = _messages.Sum(m => m.ParagraphCount);
-            var totalWordCount = _messages.Sum(m => m.WordCount);
+            int totalParagraphCount = _messages.Sum(m => m.ParagraphCount);
+            int totalWordCount = _messages.Sum(m => m.WordCount);
             await context.YieldOutputAsync($"Total Paragraphs: {totalParagraphCount}, Total Words: {totalWordCount}", cancellationToken);
         }
     }
@@ -101,9 +107,9 @@ internal sealed class FileReadExecutor() : Executor<string, string>("FileReadExe
     public override async ValueTask<string> HandleAsync(string message, IWorkflowContext context, CancellationToken cancellationToken = default)
     {
         // Read file content from embedded resource
-        var fileContent = Resources.Read(message);
+        string fileContent = Resources.Read(message);
         // Store file content in a shared state for access by other executors
-        var fileID = Guid.NewGuid().ToString("N");
+        string fileID = Guid.NewGuid().ToString("N");
         await context.QueueStateUpdateAsync(fileID, fileContent, FileContentStateConstants.FileContentStateScope, cancellationToken);
 
         return fileID;

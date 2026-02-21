@@ -1,15 +1,22 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
+using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.ComponentModel;
+using System.Linq;
 using System.Runtime.CompilerServices;
 
-using AgentOrch.ChatApp.Wpf.Utils;
+using AgentOrchestration.Wpf.Utils;
 
 using Microsoft.Extensions.AI;
 
 
 
-namespace AgentOrch.ChatApp.Wpf.Models;
+
+namespace AgentOrchestration.Wpf.Models;
+
+
+
 
 
 // Represents the chat history between the user and the AI.
@@ -76,7 +83,7 @@ public class ChatHistory : IList<ChatMessage>, IReadOnlyList<ChatMessage>, INoti
     /// </summary>
     /// <param name="systemMessage">The system message to add to the history.</param>
     public ChatHistory(string systemMessage)
-        : this(systemMessage, ChatRole.System)
+            : this(systemMessage, ChatRole.System)
     {
     }
 
@@ -103,74 +110,38 @@ public class ChatHistory : IList<ChatMessage>, IReadOnlyList<ChatMessage>, INoti
 
 
 
+    /// <summary>Gets or sets the message at the specified index in the history.</summary>
+    /// <param name="index">The index of the message to get or set.</param>
+    /// <returns>The message at the specified index.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="value" /> is null.</exception>
+    /// <exception cref="ArgumentOutOfRangeException">The <paramref name="index" /> was not valid for this history.</exception>
+    public virtual ChatMessage this[int index]
+    {
+        get => _messages[index];
+        set
+        {
+            Verify.NotNull(value);
+            ChatMessage old = _messages[index];
+            _messages[index] = value;
+
+            OnCollectionChanged(new NotifyCollectionChangedEventArgs(
+                    NotifyCollectionChangedAction.Replace, value, old, index));
+        }
+    }
+
+
+
+
+
+    /// <inheritdoc />
+    bool ICollection<ChatMessage>.IsReadOnly => false;
+
+
+
+
+
     /// <summary>Gets the number of messages in the history.</summary>
     public virtual int Count => _messages.Count;
-
-
-
-
-
-
-
-
-    /// <summary>Adds a message to the history.</summary>
-    /// <param name="item">The message to add.</param>
-    /// <exception cref="ArgumentNullException"><paramref name="item" /> is null.</exception>
-    public virtual void Add(ChatMessage item)
-    {
-        Verify.NotNull(item);
-        _messages.Add(item);
-        _overrideAdd?.Invoke(item);
-
-        OnPropertyChanged(nameof(Count));
-        OnCollectionChanged(new NotifyCollectionChangedEventArgs(
-            NotifyCollectionChangedAction.Add, item, _messages.Count - 1));
-    }
-
-
-
-
-
-
-
-
-    /// <summary>Inserts a message into the history at the specified index.</summary>
-    /// <param name="index">The index at which the item should be inserted.</param>
-    /// <param name="item">The message to insert.</param>
-    /// <exception cref="ArgumentNullException"><paramref name="item" /> is null.</exception>
-    public virtual void Insert(int index, ChatMessage item)
-    {
-        Verify.NotNull(item);
-        _messages.Insert(index, item);
-        _overrideInsert?.Invoke(index, item);
-
-        OnPropertyChanged(nameof(Count));
-        OnCollectionChanged(new NotifyCollectionChangedEventArgs(
-            NotifyCollectionChangedAction.Add, item, index));
-    }
-
-
-
-
-
-
-
-
-    /// <summary>
-    ///     Copies all of the messages in the history to an array, starting at the specified destination array index.
-    /// </summary>
-    /// <param name="array">The destination array into which the messages should be copied.</param>
-    /// <param name="arrayIndex">The zero-based index into <paramref name="array" /> at which copying should begin.</param>
-    /// <exception cref="ArgumentNullException"><paramref name="array" /> is null.</exception>
-    /// <exception cref="ArgumentException">
-    ///     The number of messages in the history is greater than the available space from
-    ///     <paramref name="arrayIndex" /> to the end of <paramref name="array" />.
-    /// </exception>
-    /// <exception cref="ArgumentOutOfRangeException"><paramref name="arrayIndex" /> is less than 0.</exception>
-    public virtual void CopyTo(ChatMessage[] array, int arrayIndex)
-    {
-        _messages.CopyTo(array, arrayIndex);
-    }
 
 
 
@@ -202,23 +173,110 @@ public class ChatHistory : IList<ChatMessage>, IReadOnlyList<ChatMessage>, INoti
 
 
 
-    /// <summary>Gets or sets the message at the specified index in the history.</summary>
-    /// <param name="index">The index of the message to get or set.</param>
-    /// <returns>The message at the specified index.</returns>
-    /// <exception cref="ArgumentNullException"><paramref name="value" /> is null.</exception>
+    /// <summary>Removes the message at the specified index from the history.</summary>
+    /// <param name="index">The index of the message to remove.</param>
     /// <exception cref="ArgumentOutOfRangeException">The <paramref name="index" /> was not valid for this history.</exception>
-    public virtual ChatMessage this[int index]
+    public virtual void RemoveAt(int index)
     {
-        get => _messages[index];
-        set
-        {
-            Verify.NotNull(value);
-            ChatMessage old = _messages[index];
-            _messages[index] = value;
+        ChatMessage old = _messages[index];
+        _messages.RemoveAt(index);
+        _overrideRemoveAt?.Invoke(index);
 
-            OnCollectionChanged(new NotifyCollectionChangedEventArgs(
-                NotifyCollectionChangedAction.Replace, value, old, index));
-        }
+        OnPropertyChanged(nameof(Count));
+        OnCollectionChanged(new NotifyCollectionChangedEventArgs(
+                NotifyCollectionChangedAction.Remove, old, index));
+    }
+
+
+
+
+
+
+
+
+    /// <inheritdoc />
+    IEnumerator<ChatMessage> IEnumerable<ChatMessage>.GetEnumerator()
+    {
+        return _messages.GetEnumerator();
+    }
+
+
+
+
+
+
+
+
+    /// <inheritdoc />
+    IEnumerator IEnumerable.GetEnumerator()
+    {
+        return _messages.GetEnumerator();
+    }
+
+
+
+
+
+
+
+
+    /// <summary>Adds a message to the history.</summary>
+    /// <param name="item">The message to add.</param>
+    /// <exception cref="ArgumentNullException"><paramref name="item" /> is null.</exception>
+    public virtual void Add(ChatMessage item)
+    {
+        Verify.NotNull(item);
+        _messages.Add(item);
+        _overrideAdd?.Invoke(item);
+
+        OnPropertyChanged(nameof(Count));
+        OnCollectionChanged(new NotifyCollectionChangedEventArgs(
+                NotifyCollectionChangedAction.Add, item, _messages.Count - 1));
+    }
+
+
+
+
+
+
+
+
+    /// <summary>Inserts a message into the history at the specified index.</summary>
+    /// <param name="index">The index at which the item should be inserted.</param>
+    /// <param name="item">The message to insert.</param>
+    /// <exception cref="ArgumentNullException"><paramref name="item" /> is null.</exception>
+    public virtual void Insert(int index, ChatMessage item)
+    {
+        Verify.NotNull(item);
+        _messages.Insert(index, item);
+        _overrideInsert?.Invoke(index, item);
+
+        OnPropertyChanged(nameof(Count));
+        OnCollectionChanged(new NotifyCollectionChangedEventArgs(
+                NotifyCollectionChangedAction.Add, item, index));
+    }
+
+
+
+
+
+
+
+
+    /// <summary>
+    ///     Copies all of the messages in the history to an array, starting at the specified destination array index.
+    /// </summary>
+    /// <param name="array">The destination array into which the messages should be copied.</param>
+    /// <param name="arrayIndex">The zero-based index into <paramref name="array" /> at which copying should begin.</param>
+    /// <exception cref="ArgumentNullException"><paramref name="array" /> is null.</exception>
+    /// <exception cref="ArgumentException">
+    ///     The number of messages in the history is greater than the available space from
+    ///     <paramref name="arrayIndex" /> to the end of <paramref name="array" />.
+    /// </exception>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="arrayIndex" /> is less than 0.</exception>
+    public virtual void CopyTo(ChatMessage[] array, int arrayIndex)
+    {
+        _messages.CopyTo(array, arrayIndex);
     }
 
 
@@ -262,27 +320,6 @@ public class ChatHistory : IList<ChatMessage>, IReadOnlyList<ChatMessage>, INoti
 
 
 
-    /// <summary>Removes the message at the specified index from the history.</summary>
-    /// <param name="index">The index of the message to remove.</param>
-    /// <exception cref="ArgumentOutOfRangeException">The <paramref name="index" /> was not valid for this history.</exception>
-    public virtual void RemoveAt(int index)
-    {
-        ChatMessage old = _messages[index];
-        _messages.RemoveAt(index);
-        _overrideRemoveAt?.Invoke(index);
-
-        OnPropertyChanged(nameof(Count));
-        OnCollectionChanged(new NotifyCollectionChangedEventArgs(
-            NotifyCollectionChangedAction.Remove, old, index));
-    }
-
-
-
-
-
-
-
-
     /// <summary>Removes the first occurrence of the specified message from the history.</summary>
     /// <param name="item">The message to remove from the history.</param>
     /// <returns>true if the item was successfully removed; false if it wasn't located in the history.</returns>
@@ -290,56 +327,23 @@ public class ChatHistory : IList<ChatMessage>, IReadOnlyList<ChatMessage>, INoti
     public virtual bool Remove(ChatMessage item)
     {
         Verify.NotNull(item);
-        var index = _messages.IndexOf(item);
-        if (index < 0) return false;
+        int index = _messages.IndexOf(item);
+        if (index < 0)
+        {
+            return false;
+        }
 
-        var result = _messages.Remove(item);
+        bool result = _messages.Remove(item);
         _ = _overrideRemove?.Invoke(item);
 
         if (result)
         {
             OnPropertyChanged(nameof(Count));
             OnCollectionChanged(new NotifyCollectionChangedEventArgs(
-                NotifyCollectionChangedAction.Remove, item, index));
+                    NotifyCollectionChangedAction.Remove, item, index));
         }
 
         return result;
-    }
-
-
-
-
-
-
-
-
-    /// <inheritdoc />
-    bool ICollection<ChatMessage>.IsReadOnly => false;
-
-
-
-
-
-
-
-
-    /// <inheritdoc />
-    IEnumerator<ChatMessage> IEnumerable<ChatMessage>.GetEnumerator()
-    {
-        return _messages.GetEnumerator();
-    }
-
-
-
-
-
-
-
-
-    /// <inheritdoc />
-    IEnumerator IEnumerable.GetEnumerator()
-    {
-        return _messages.GetEnumerator();
     }
 
 
@@ -388,13 +392,13 @@ public class ChatHistory : IList<ChatMessage>, IReadOnlyList<ChatMessage>, INoti
     // internal IEnumerable<Microsoft.Extensions.AI.ChatMessage> when used from IChatClients
     // with AutoFunctionInvocationFilters
     internal void SetOverrides(
-        Action<ChatMessage> overrideAdd,
-        Func<ChatMessage, bool> overrideRemove,
-        Action onClear,
-        Action<int, ChatMessage> overrideInsert,
-        Action<int> overrideRemoveAt,
-        Action<int, int> overrideRemoveRange,
-        Action<IEnumerable<ChatMessage>> overrideAddRange)
+            Action<ChatMessage> overrideAdd,
+            Func<ChatMessage, bool> overrideRemove,
+            Action onClear,
+            Action<int, ChatMessage> overrideInsert,
+            Action<int> overrideRemoveAt,
+            Action<int, int> overrideRemoveRange,
+            Action<IEnumerable<ChatMessage>> overrideAddRange)
     {
         _overrideAdd = overrideAdd;
         _overrideRemove = overrideRemove;
@@ -519,16 +523,19 @@ public class ChatHistory : IList<ChatMessage>, IReadOnlyList<ChatMessage>, INoti
     {
         Verify.NotNull(items);
         var added = items as IList<ChatMessage> ?? items.ToList();
-        if (added.Count == 0) return;
+        if (added.Count == 0)
+        {
+            return;
+        }
 
-        var startIndex = _messages.Count;
+        int startIndex = _messages.Count;
 
         _messages.AddRange(added);
         _overrideAddRange?.Invoke(added);
 
         OnPropertyChanged(nameof(Count));
         OnCollectionChanged(new NotifyCollectionChangedEventArgs(
-            NotifyCollectionChangedAction.Add, (IList)added, startIndex));
+                NotifyCollectionChangedAction.Add, added, startIndex));
     }
 
 
@@ -551,7 +558,10 @@ public class ChatHistory : IList<ChatMessage>, IReadOnlyList<ChatMessage>, INoti
     /// </exception>
     public virtual void RemoveRange(int index, int count)
     {
-        if (count <= 0) return;
+        if (count <= 0)
+        {
+            return;
+        }
 
         var removed = _messages.GetRange(index, count);
         _messages.RemoveRange(index, count);
@@ -559,6 +569,6 @@ public class ChatHistory : IList<ChatMessage>, IReadOnlyList<ChatMessage>, INoti
 
         OnPropertyChanged(nameof(Count));
         OnCollectionChanged(new NotifyCollectionChangedEventArgs(
-            NotifyCollectionChangedAction.Remove, removed, index));
+                NotifyCollectionChangedAction.Remove, removed, index));
     }
 }

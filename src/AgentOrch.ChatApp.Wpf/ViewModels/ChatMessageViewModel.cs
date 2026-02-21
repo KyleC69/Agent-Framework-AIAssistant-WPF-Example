@@ -1,3 +1,4 @@
+using System;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 
@@ -5,7 +6,11 @@ using Microsoft.Extensions.AI;
 
 
 
-namespace AgentOrch.ChatApp.Wpf.ViewModels;
+
+namespace AgentOrchestration.Wpf.ViewModels;
+
+
+
 
 
 public sealed class ChatMessageViewModel : INotifyPropertyChanged
@@ -46,7 +51,10 @@ public sealed class ChatMessageViewModel : INotifyPropertyChanged
         get => _text;
         set
         {
-            if (string.Equals(_text, value, StringComparison.Ordinal)) return;
+            if (string.Equals(_text, value, StringComparison.Ordinal))
+            {
+                return;
+            }
 
             _text = value;
             OnPropertyChanged();

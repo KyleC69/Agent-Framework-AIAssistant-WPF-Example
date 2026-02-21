@@ -1,12 +1,19 @@
-﻿using System.Diagnostics;
+﻿using System;
+using System.Collections.Generic;
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
+using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text.RegularExpressions;
 
 
 
-namespace AgentOrch.ChatApp.Wpf.Utils;
+
+namespace AgentOrchestration.Wpf.Utils;
+
+
+
 
 
 [ExcludeFromCodeCoverage]
@@ -17,6 +24,8 @@ internal static partial class Verify
     private static partial Regex FilenameRegex();
 #else
     private static Regex FilenameRegex() => s_filenameRegex;
+
+
     private static readonly Regex s_filenameRegex = new("^[^.]+\\.[^.]+$", RegexOptions.Compiled);
 #endif
 
@@ -74,7 +83,10 @@ internal static partial class Verify
     internal static void NotNullOrEmpty<T>(IList<T> list, [CallerArgumentExpression(nameof(list))] string? paramName = null)
     {
         NotNull(list, paramName);
-        if (list.Count == 0) throw new ArgumentException("The value cannot be empty.", paramName);
+        if (list.Count == 0)
+        {
+            throw new ArgumentException("The value cannot be empty.", paramName);
+        }
     }
 
 
@@ -86,7 +98,10 @@ internal static partial class Verify
 
     public static void True(bool condition, string message, [CallerArgumentExpression(nameof(condition))] string? paramName = null)
     {
-        if (!condition) throw new ArgumentException(message, paramName);
+        if (!condition)
+        {
+            throw new ArgumentException(message, paramName);
+        }
     }
 
 
@@ -99,7 +114,10 @@ internal static partial class Verify
     internal static void ValidFilename([NotNull] string? filename, [CallerArgumentExpression(nameof(filename))] string? paramName = null)
     {
         NotNullOrWhiteSpace(filename);
-        if (!FilenameRegex().IsMatch(filename)) throw new ArgumentException($"Invalid filename format: '{filename}'. Filename should consist of an actual name and a file extension.", paramName);
+        if (!FilenameRegex().IsMatch(filename))
+        {
+            throw new ArgumentException($"Invalid filename format: '{filename}'. Filename should consist of an actual name and a file extension.", paramName);
+        }
     }
 
 
@@ -113,11 +131,20 @@ internal static partial class Verify
     {
         NotNullOrWhiteSpace(url, paramName);
 
-        if (!Uri.TryCreate(url, UriKind.Absolute, out Uri? uri) || string.IsNullOrEmpty(uri.Host)) throw new ArgumentException($"The `{url}` is not valid.", paramName);
+        if (!Uri.TryCreate(url, UriKind.Absolute, out Uri? uri) || string.IsNullOrEmpty(uri.Host))
+        {
+            throw new ArgumentException($"The `{url}` is not valid.", paramName);
+        }
 
-        if (!allowQuery && !string.IsNullOrEmpty(uri.Query)) throw new ArgumentException($"The `{url}` is not valid: it cannot contain query parameters.", paramName);
+        if (!allowQuery && !string.IsNullOrEmpty(uri.Query))
+        {
+            throw new ArgumentException($"The `{url}` is not valid: it cannot contain query parameters.", paramName);
+        }
 
-        if (!string.IsNullOrEmpty(uri.Fragment)) throw new ArgumentException($"The `{url}` is not valid: it cannot contain URL fragments.", paramName);
+        if (!string.IsNullOrEmpty(uri.Fragment))
+        {
+            throw new ArgumentException($"The `{url}` is not valid: it cannot contain URL fragments.", paramName);
+        }
     }
 
 
@@ -132,7 +159,10 @@ internal static partial class Verify
         Debug.Assert(prefix is not null);
 
         NotNullOrWhiteSpace(text, textParamName);
-        if (!text.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)) throw new ArgumentException(textParamName, message);
+        if (!text.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+        {
+            throw new ArgumentException(textParamName, message);
+        }
     }
 
 
@@ -144,7 +174,10 @@ internal static partial class Verify
 
     internal static void DirectoryExists(string path)
     {
-        if (!Directory.Exists(path)) throw new DirectoryNotFoundException($"Directory '{path}' could not be found.");
+        if (!Directory.Exists(path))
+        {
+            throw new DirectoryNotFoundException($"Directory '{path}' could not be found.");
+        }
     }
 
 
@@ -208,24 +241,24 @@ internal static partial class Verify
 
     private static readonly HashSet<string> s_invalidLocationCharacters =
     [
-        "://",
-        "..",
-        "\\",
-        "/",
-        "@",
-        "?",
-        "#",
-        "[",
-        "]",
-        "&",
-        ":",
-        "<",
-        ">",
-        "'",
-        "\"",
-        "+",
-        "|",
-        "="
+            "://",
+            "..",
+            "\\",
+            "/",
+            "@",
+            "?",
+            "#",
+            "[",
+            "]",
+            "&",
+            ":",
+            "<",
+            ">",
+            "'",
+            "\"",
+            "+",
+            "|",
+            "="
     ];
 
 
@@ -244,11 +277,17 @@ internal static partial class Verify
     internal static void ValidHostnameSegment(string hostNameSegment, [CallerArgumentExpression(nameof(hostNameSegment))] string? paramName = null)
     {
         // Check for URL injection patterns and invalid characters
-        if (s_invalidLocationCharacters.Any(hostNameSegment.Contains)) throw new ArgumentException($"The location '{hostNameSegment}' contains invalid characters that could enable URL injection.", paramName);
+        if (s_invalidLocationCharacters.Any(hostNameSegment.Contains))
+        {
+            throw new ArgumentException($"The location '{hostNameSegment}' contains invalid characters that could enable URL injection.", paramName);
+        }
 
         // Validate location format (allows alphanumeric, hyphens, and underscores)
         // Common format examples: us-east1, europe-west4, asia-northeast1
-        if (!Regex.IsMatch(hostNameSegment, @"^[a-zA-Z0-9][a-zA-Z0-9\-_]*[a-zA-Z0-9]$")) throw new ArgumentException($"The location '{hostNameSegment}' is not valid. Location must start and end with alphanumeric characters and can contain hyphens and underscores.", paramName);
+        if (!Regex.IsMatch(hostNameSegment, @"^[a-zA-Z0-9][a-zA-Z0-9\-_]*[a-zA-Z0-9]$"))
+        {
+            throw new ArgumentException($"The location '{hostNameSegment}' is not valid. Location must start and end with alphanumeric characters and can contain hyphens and underscores.", paramName);
+        }
     }
 
 
@@ -260,6 +299,9 @@ internal static partial class Verify
 
     internal static void NotLessThan(int value, int limit, [CallerArgumentExpression(nameof(value))] string? paramName = null)
     {
-        if (value < limit) throw new ArgumentOutOfRangeException(paramName, $"{paramName} must be greater than or equal to {limit}.");
+        if (value < limit)
+        {
+            throw new ArgumentOutOfRangeException(paramName, $"{paramName} must be greater than or equal to {limit}.");
+        }
     }
 }

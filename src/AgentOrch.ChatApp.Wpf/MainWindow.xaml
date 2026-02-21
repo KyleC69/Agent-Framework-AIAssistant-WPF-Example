@@ -1,13 +1,13 @@
-﻿<Window x:Class="AgentOrch.ChatApp.Wpf.MainWindow"
+﻿<Window x:Class="AgentOrchestration.Wpf.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:ai="clr-namespace:Microsoft.Extensions.AI;assembly=Microsoft.Extensions.AI.Abstractions"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:controls="clr-namespace:AgentOrch.ChatApp.Wpf.Controls"
-        xmlns:local="clr-namespace:AgentOrch.ChatApp.Wpf"
+        xmlns:controls="clr-namespace:AgentOrchestration.Wpf.Controls"
+        xmlns:local="clr-namespace:AgentOrchestration.Wpf"
         mc:Ignorable="d" Loaded="Window_Loaded"
-        Title="AgentOrch Chat" Height="720" Width="980"
+        Title="Agent Framework Example Chat" Height="800" Width="1200"
         Background="{DynamicResource App.WindowBackgroundBrush}">
 
 
@@ -16,15 +16,12 @@
 
         <CornerRadius x:Key="BubbleRadius">12</CornerRadius>
 
-        <SolidColorBrush x:Key="UserBubbleBrush" Color="{DynamicResource App.AccentColor}" />
-        <SolidColorBrush x:Key="AgentBubbleBrush" Color="{DynamicResource App.BubbleAgentColor}" />
-        <SolidColorBrush x:Key="SystemBubbleBrush" Color="{DynamicResource App.BubbleSystemColor}" />
-        <SolidColorBrush x:Key="BubbleForegroundBrush" Color="{DynamicResource App.BubbleForegroundColor}" />
-        <SolidColorBrush x:Key="CodeBubbleBackgroundBrush" Color="{DynamicResource App.WindowBackgroundColor}" />
+
 
         <Style x:Key="BubbleBorderStyle" TargetType="Border">
             <Setter Property="CornerRadius" Value="{StaticResource BubbleRadius}" />
-            <Setter Property="MaxWidth" Value="{Binding ElementName=MessagesList, Path=ActualWidth, Converter={StaticResource BubbleMaxWidthConverter}}" />
+            <Setter Property="MaxWidth"
+                    Value="{Binding ElementName=MessagesList, Path=ActualWidth, Converter={StaticResource BubbleMaxWidthConverter}}" />
             <Setter Property="HorizontalAlignment" Value="Center" />
         </Style>
 
@@ -39,7 +36,7 @@
                         TextWrapping="Wrap"
                         BorderThickness="0"
                         Background="{StaticResource CodeBubbleBackgroundBrush}"
-                        Foreground="{StaticResource BubbleForegroundBrush}"
+                        Foreground="{StaticResource CodeBubbleForegroundBrush}"
                         IsReadOnly="True"
                         IsReadOnlyCaretVisible="True" />
                 </Border>
@@ -79,38 +76,40 @@
         </Style>
     </Window.Resources>
 
-    <Grid>
+    <Grid Background="{DynamicResource App.SurfaceBrush}">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
-
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="1200" />
+        </Grid.ColumnDefinitions>
         <!-- Header -->
-        <Border Grid.Row="0" Background="{DynamicResource App.SurfaceBrush}" Padding="16,14">
-            <DockPanel>
-                <StackPanel DockPanel.Dock="Left">
-                    <TextBlock Text="AgentOrch Chat" FontSize="18" FontWeight="SemiBold" Foreground="{DynamicResource App.TextPrimaryBrush}" />
-                    <TextBlock Text="AI agent communication UI" Opacity="0.75" Foreground="{DynamicResource App.TextPrimaryBrush}" />
+
+        <Border Grid.Row="0" Grid.ColumnSpan="2" Background="{DynamicResource App.SurfaceBrush}" Padding="2,19">
+            <DockPanel Background="{DynamicResource App.ControlSurfaceBrush}">
+                <StackPanel DockPanel.Dock="Left" Width="500">
+                    <TextBlock Text="MS Agent Framework WPF Example Chat" FontSize="18" FontWeight="SemiBold"
+                               Foreground="{DynamicResource App.HeaderTextPrimaryBrush}" />
+                    <TextBlock Text="AI agent communication UI" Opacity="0.95"
+                               Foreground="{DynamicResource App.HeaderTextPrimaryBrush}" />
                 </StackPanel>
 
-                <controls:AIToolUsageIndicators x:Name="ToolIndicators"
-                                                DockPanel.Dock="Right"
-                                                Margin="16,0,0,0"
-                                                IndicatorSize="18"
-                                                Background="Transparent" />
 
                 <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Top"
                             Margin="12,0,0,0" MaxWidth="725">
                     <ToggleButton
                         Content="Orchestrated"
                         Padding="10,6,10,6"
-                        Foreground="{DynamicResource App.TextPrimaryBrush}"
+                        Foreground="{DynamicResource App.HeaderTextPrimaryBrush}"
                         Background="{DynamicResource App.ControlSurfaceBrush}"
                         BorderBrush="Transparent"
                         VerticalAlignment="Top" Checked="ToggleButton_Checked" Width="90" HorizontalAlignment="Left" />
 
-                    <TextBlock Text="Working…" Foreground="{DynamicResource App.TextPrimaryBrush}" Opacity="0.8" VerticalAlignment="Center">
+                    <TextBlock Text="Working…" Foreground="{DynamicResource App.TextPrimaryBrush}" Opacity="0.8"
+                               VerticalAlignment="Center">
                         <TextBlock.Style>
                             <Style TargetType="TextBlock">
                                 <Setter Property="Visibility" Value="Collapsed" />
@@ -144,7 +143,9 @@
                  Grid.Row="1"
                  Style="{StaticResource MessageListStyle}"
                  ItemsSource="{Binding Messages}"
-                 SelectionMode="Extended" d:ItemsSource="{d:SampleData ItemCount=5}" Foreground="{DynamicResource App.ListForegroundBrush}" Margin="15,0,15,0" Width="930" Padding="25,0,25,0" Grid.IsSharedSizeScope="True" HorizontalAlignment="Center">
+                 SelectionMode="Extended" d:ItemsSource="{d:SampleData ItemCount=5}"
+                 Foreground="{DynamicResource App.ListForegroundBrush}" Width="942" Padding="25,0,25,0"
+                 Grid.IsSharedSizeScope="True" HorizontalAlignment="Left" Margin="228,0,0,0" Grid.ColumnSpan="2">
             <ListBox.ItemContainerStyle>
                 <Style TargetType="ListBoxItem">
                     <Setter Property="Padding" Value="0" />
@@ -185,9 +186,8 @@
                 </DataTemplate>
             </ListBox.ItemTemplate>
         </ListBox>
-
-        <!-- Composer -->
-        <Border Grid.Row="2" Background="{DynamicResource App.SurfaceBrush}" Padding="16,12">
+        <Border Grid.Row="2" Grid.ColumnSpan="2" BorderThickness="5" Background="{DynamicResource App.SurfaceBrush}"
+                Padding="16,12">
             <Grid>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*" />
@@ -196,22 +196,22 @@
                     <ColumnDefinition Width="12" />
                     <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
-<Border Background="{DynamicResource App.WindowBackgroundBrush}" CornerRadius="{StaticResource BubbleRadius}" Padding="3">
-                <TextBox
-                    x:Name="MessageTextBox"
-                    Grid.Column="0"
-                    Text="{Binding UserMessage, UpdateSourceTrigger=PropertyChanged,Mode=TwoWay}"
-                    Background="{DynamicResource App.WindowBackgroundBrush}"
-                    Foreground="{DynamicResource App.TextPrimaryBrush}"
-                    BorderBrush="{DynamicResource App.ControlSurfaceBrush}"
-                    Padding="12,10"
-                    FontSize="14"
-                    MinHeight="40"
-                    
-                    VerticalContentAlignment="Center" AcceptsReturn="True" />
-</Border>
+                <Border Background="{DynamicResource App.WindowBackgroundBrush}"
+                        CornerRadius="{StaticResource BubbleRadius}" Padding="3">
+                    <TextBox
+                        x:Name="MessageTextBox"
+                        Text="{Binding UserMessage, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                        Background="{DynamicResource App.WindowBackgroundBrush}"
+                        Foreground="{DynamicResource App.TextPrimaryBrush}"
+                        BorderBrush="{DynamicResource App.ControlSurfaceBrush}"
+                        Padding="12,10"
+                        FontSize="14"
+                        MinHeight="40"
+
+                        VerticalContentAlignment="Center" AcceptsReturn="True" />
+                </Border>
                 <Button
-                    Grid.Column="2"
+                    Grid.Column="5"
                     Content="Send"
                     Command="{Binding SendCommand}"
                     IsDefault="True"
@@ -231,7 +231,7 @@
                     Foreground="{DynamicResource App.TextPrimaryBrush}"
                     BorderBrush="Transparent">
                     <Button.Style>
-                        <Style TargetType="Button">
+                        <Style TargetType="{x:Type Button}">
                             <Setter Property="Visibility" Value="Collapsed" />
                             <Style.Triggers>
                                 <DataTrigger Binding="{Binding IsBusy}" Value="True">
@@ -243,5 +243,7 @@
                 </Button>
             </Grid>
         </Border>
+
+        <!-- Composer -->
     </Grid>
 </Window>

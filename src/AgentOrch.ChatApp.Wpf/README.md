@@ -1,1 +1,1 @@
-# AgentOrch.ChatApp.Wpf
+# AgentOrchestration.Wpf

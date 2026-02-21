@@ -1,1 +1,1 @@
-namespace AgentOrch.ChatApp.Wpf.Services.Agents;
+namespace AgentOrchestration.Wpf.Services.Agents;

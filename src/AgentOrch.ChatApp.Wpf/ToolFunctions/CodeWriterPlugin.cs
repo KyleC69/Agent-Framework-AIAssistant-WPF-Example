@@ -2,6 +2,7 @@
 
 
 
+using System;
 using System.ComponentModel;
 using System.IO;
 using System.Text;
@@ -10,7 +11,11 @@ using Markdig;
 
 
 
-namespace AgentOrch.ChatApp.Wpf.ToolFunctions;
+
+namespace AgentOrchestration.Wpf.ToolFunctions;
+
+
+
 
 
 //this is to format code snippets and prepare them for final output ??? possible?
@@ -49,22 +54,25 @@ public class OutputMarkDownPlugin
 
     public static string ConvertModelOutputToMarkdown(string content)
     {
-        if (string.IsNullOrWhiteSpace(content)) return string.Empty;
+        if (string.IsNullOrWhiteSpace(content))
+        {
+            return string.Empty;
+        }
 
         // Remove common local-model stop tokens that can leak into output.
-        var cleaned = content
-            .Replace("<|end|>", string.Empty, StringComparison.Ordinal)
-            .Replace("<|user|>", string.Empty, StringComparison.Ordinal)
-            .Replace("<|system|>", string.Empty, StringComparison.Ordinal)
-            .Trim();
+        string cleaned = content
+                .Replace("<|end|>", string.Empty, StringComparison.Ordinal)
+                .Replace("<|user|>", string.Empty, StringComparison.Ordinal)
+                .Replace("<|system|>", string.Empty, StringComparison.Ordinal)
+                .Trim();
 
         cleaned = NormalizeCodeFences(cleaned);
 
         // Validate markdown via Markdig parse so obvious issues surface during development.
         // Keep return type as markdown string because the tool API expects string.
         MarkdownPipeline? pipeline = new MarkdownPipelineBuilder()
-            .UseAdvancedExtensions()
-            .Build();
+                .UseAdvancedExtensions()
+                .Build();
 
         _ = Markdown.Parse(cleaned, pipeline);
         return cleaned;
@@ -85,7 +93,7 @@ public class OutputMarkDownPlugin
         string? line;
         while ((line = sr.ReadLine()) is not null)
         {
-            var trimmed = line.TrimStart();
+            string trimmed = line.TrimStart();
             _ = trimmed.StartsWith("```", StringComparison.Ordinal) && line.Length != trimmed.Length ? sb.Append(trimmed) : sb.Append(line);
 
             _ = sb.Append('\n');

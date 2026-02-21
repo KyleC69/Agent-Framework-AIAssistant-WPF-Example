@@ -2,12 +2,26 @@ using System;
 using System.Globalization;
 using System.Windows.Data;
 
-namespace AgentOrch.ChatApp.Wpf;
+
+
+
+namespace AgentOrchestration.Wpf;
+
+
+
+
 
 public sealed class BubbleMaxWidthConverter : IValueConverter
 {
     private const double HorizontalPadding = 64;
     private const double MaxBubbleWidth = 980;
+
+
+
+
+
+
+
 
     public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
     {
@@ -19,6 +33,13 @@ public sealed class BubbleMaxWidthConverter : IValueConverter
         var max = Math.Max(0, width - HorizontalPadding);
         return Math.Min(MaxBubbleWidth, max);
     }
+
+
+
+
+
+
+
 
     public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
         => throw new NotSupportedException();

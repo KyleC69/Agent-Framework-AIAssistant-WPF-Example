@@ -1,3 +1,4 @@
+using System;
 using System.ComponentModel;
 
 
@@ -11,8 +12,8 @@ public class SpecCheckPlugin
     public string Check([Description("Spec or acceptance criteria text")] string spec, [Description("Produced output to validate")] string output)
     {
         // Demo: naive checks and verdict
-        var verdict = output.Contains("https://api.github.com", StringComparison.OrdinalIgnoreCase) ? "PASS" : "WARN";
-        var json = $$"""
+        string verdict = output.Contains("https://api.github.com", StringComparison.OrdinalIgnoreCase) ? "PASS" : "WARN";
+        string json = $$"""
                      {
                        "verdict": "{{verdict}}",
                        "notes": "Ensure filtering by last 24h and robust error handling.",

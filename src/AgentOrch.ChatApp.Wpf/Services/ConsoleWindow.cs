@@ -1,8 +1,13 @@
+using System;
 using System.Runtime.InteropServices;
 
 
 
-namespace AgentOrch.ChatApp.Wpf.Services;
+
+namespace AgentOrchestration.Wpf.Services;
+
+
+
 
 
 internal static class ConsoleWindow
@@ -39,7 +44,10 @@ internal static class ConsoleWindow
     public static void Ensure()
     {
         // If launched from a console, attach to it; otherwise allocate a new one.
-        if (!AttachConsole(AttachParentProcess)) _ = AllocConsole();
+        if (!AttachConsole(AttachParentProcess))
+        {
+            _ = AllocConsole();
+        }
 
         try
         {

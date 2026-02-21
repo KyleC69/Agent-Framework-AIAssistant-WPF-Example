@@ -1,4 +1,7 @@
-﻿namespace AgentOrch.ChatApp.Wpf.Services;
+﻿namespace AgentOrchestration.Wpf.Services;
+
+
+
 
 
 /*public static class ServiceCollectionExtensions

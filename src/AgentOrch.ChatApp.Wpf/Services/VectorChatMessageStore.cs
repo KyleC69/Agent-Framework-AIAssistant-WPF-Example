@@ -1,4 +1,9 @@
-﻿using System.Text.Json;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text.Json;
+using System.Threading;
+using System.Threading.Tasks;
 
 using Microsoft.Agents.AI;
 using Microsoft.Extensions.AI;
@@ -6,11 +11,14 @@ using Microsoft.Extensions.VectorData;
 
 
 
-namespace AgentOrch.ChatApp.Wpf.Services;
+
+namespace AgentOrchestration.Wpf.Services;
 
 
 
-internal sealed class VectorChatMessageStore : ChatHistoryProvider
+
+
+internal sealed class VectorChatMessageStore : ChatHistoryProvider, IVectorChatMessageStore
 {
     private readonly VectorStore _vectorStore;
 
@@ -41,6 +49,19 @@ internal sealed class VectorChatMessageStore : ChatHistoryProvider
 
 
     public string? ThreadDbKey { get; private set; }
+
+
+
+
+
+
+
+
+    public JsonElement Serialize(JsonSerializerOptions? jsonSerializerOptions = null)
+    {
+        // We have to serialize the thread id, so that on deserialization you can retrieve the messages using the same thread id.
+        return JsonSerializer.SerializeToElement(ThreadDbKey, jsonSerializerOptions);
+    }
 
 
 
@@ -124,7 +145,9 @@ internal sealed class VectorChatMessageStore : ChatHistoryProvider
     protected override ValueTask<IEnumerable<ChatMessage>> InvokingCoreAsync(
             InvokingContext context,
             CancellationToken cancellationToken = default)
-        => new(LoadMessagesAsync(cancellationToken));
+    {
+        return new ValueTask<IEnumerable<ChatMessage>>(LoadMessagesAsync(cancellationToken));
+    }
 
 
 
@@ -139,19 +162,6 @@ internal sealed class VectorChatMessageStore : ChatHistoryProvider
     {
         ArgumentNullException.ThrowIfNull(context);
         await SaveMessagesAsync(context.ResponseMessages, cancellationToken);
-    }
-
-
-
-
-
-
-
-
-    public override JsonElement Serialize(JsonSerializerOptions? jsonSerializerOptions = null)
-    {
-        // We have to serialize the thread id, so that on deserialization you can retrieve the messages using the same thread id.
-        return JsonSerializer.SerializeToElement(ThreadDbKey, jsonSerializerOptions);
     }
 
 

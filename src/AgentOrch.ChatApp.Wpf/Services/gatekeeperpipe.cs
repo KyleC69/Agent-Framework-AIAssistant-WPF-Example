@@ -1,6 +1,9 @@
-﻿using System.ComponentModel;
+﻿using System;
+using System.Collections.Generic;
+using System.ComponentModel;
 using System.Diagnostics;
-using System.Text.Json;
+using System.Threading;
+using System.Threading.Tasks;
 
 using Microsoft.Agents.AI;
 using Microsoft.Data.SqlClient;
@@ -74,7 +77,7 @@ public sealed class SqlVectorRetriever
 
     public async Task<IReadOnlyList<RetrievedChunk>> RetrieveAsync(float[] queryEmbedding, int topK = 8)
     {
-        var results = new List<RetrievedChunk>();
+        List<RetrievedChunk> results = [];
         var embeddingLiteral = string.Join(",", queryEmbedding);
 
         var sql = $@"
@@ -87,7 +90,7 @@ public sealed class SqlVectorRetriever
 
         using SqlConnection conn = new(_connectionString);
         using SqlCommand cmd = new(sql, conn);
-        cmd.Parameters.AddWithValue("@topK", topK);
+        _ = cmd.Parameters.AddWithValue("@topK", topK);
 
         await conn.OpenAsync();
         using SqlDataReader? reader = await cmd.ExecuteReaderAsync();
@@ -115,7 +118,7 @@ public static class AgentPipelineDI
         // ServiceCollection services = new();
 
         // SQL retriever
-        services.AddSingleton(new SqlVectorRetriever(
+        _ = services.AddSingleton(new SqlVectorRetriever(
                 "Server=Desktop-NC01091;Database=AIDataRAG;Trusted_Connection=True;Encrypt=False;"));
 
         // Ollama endpoints
@@ -136,16 +139,7 @@ public static class AgentPipelineDI
         // Build the agent with middleware
         IChatClient ollamaClient = new OllamaApiClient(endpoint, mainModel);
 
-        AIAgent toolAgent = new OllamaApiClient(endpoint, "functiongemma").AsAIAgent(new ChatClientAgentOptions
-        {
-                Id = null,
-                Name = null,
-                Description = null,
-                ChatOptions = null,
-                ChatHistoryProviderFactory = null,
-                AIContextProviderFactory = null,
-                UseProvidedChatClientAsIs = false
-        });
+
 
 
 
@@ -240,6 +234,13 @@ public static class AgentPipelineDI
         Console.WriteLine($"Function Name: {context!.Function.Name} - Per-Request Post-Invoke");
         return result;
     }
+
+
+
+
+
+
+
 
     [Description("Get the weather for a given location.")]
     private static string GetWeather([Description("The location to get the weather for.")] string location)

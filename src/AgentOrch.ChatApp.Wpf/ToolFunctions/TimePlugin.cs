@@ -1,10 +1,14 @@
+using System;
 using System.ComponentModel;
 
 
 
 // ReSharper disable UnusedMember.Global // Methods aren't instantiated by user code but are necessary for reflection
 
-namespace AgentOrch.ChatApp.Wpf.ToolFunctions;
+namespace AgentOrchestration.Wpf.ToolFunctions;
+
+
+
 
 
 public sealed class TimePlugin

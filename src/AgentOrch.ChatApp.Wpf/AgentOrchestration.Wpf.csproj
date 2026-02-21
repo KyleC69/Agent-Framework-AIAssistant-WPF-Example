@@ -4,16 +4,25 @@
 		<OutputType>WinExe</OutputType>
 		<TargetFramework>net10.0-windows</TargetFramework>
 		<Nullable>enable</Nullable>
-		<ImplicitUsings>enable</ImplicitUsings>
+		<ImplicitUsings>disable</ImplicitUsings>
 		<UseWPF>true</UseWPF>
 		<NoWarn>$(NoWarn);SKEXP0110;OPENAI001</NoWarn>
-
+		
 		<AnalysisLevel>preview</AnalysisLevel>
 	</PropertyGroup>
 
 	<ItemGroup>
+	  <Compile Remove="Services\Agents\**" />
+	  <EmbeddedResource Remove="Services\Agents\**" />
+	  <None Remove="Services\Agents\**" />
+	  <Page Remove="Services\Agents\**" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<Compile Remove="Agents\App.xaml.cs" />
 		<Compile Remove="Models\Definitions.cs" />
-		<Compile Remove="Services\Agents\WorkflowAgentOrchestrator.cs" />
+		<Compile Remove="Orchestration\BaseSample.cs" />
+		<Compile Remove="Orchestration\OrchestrationSample.cs" />
 		<Compile Remove="Services\Embeddings.cs" />
 		<Compile Remove="Services\GenAIModel.cs" />
 		<Compile Remove="Services\MixedAgents.cs" />
@@ -24,18 +33,12 @@
 
 	<ItemGroup>
 		<PackageReference Include="CommunityToolkit.Mvvm" />
-		<PackageReference Include="Graphviz">
-		  <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-		  <PrivateAssets>all</PrivateAssets>
-		</PackageReference>
-		<PackageReference Include="HuggingFace" />
 		<PackageReference Include="Markdig.Wpf" />
 		<PackageReference Include="Microsoft.Agents.AI" />
 		<PackageReference Include="Microsoft.Agents.AI.Abstractions" />
 		<PackageReference Include="Microsoft.Agents.AI.Workflows" />
 		<PackageReference Include="Microsoft.Data.SqlClient" />
 		<PackageReference Include="Microsoft.Extensions.AI" />
-		<PackageReference Include="Microsoft.Extensions.AI.Evaluation.Quality" />
 		<PackageReference Include="Microsoft.Extensions.Configuration" />
 		<PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" />
 		<PackageReference Include="Microsoft.Extensions.Configuration.Json" />
@@ -44,10 +47,7 @@
 		<PackageReference Include="Microsoft.Extensions.Logging" />
 		<PackageReference Include="Microsoft.Extensions.Logging.Console" />
 		<PackageReference Include="Microsoft.Extensions.Logging.Debug" />
-	</ItemGroup>
-
-	<ItemGroup>
-	  <Folder Include="Services\Agents\" />
+		<PackageReference Include="PuppeteerSharp" />
 	</ItemGroup>
 
 	<ItemGroup>
@@ -56,13 +56,6 @@
 
 	<ItemGroup>
 	  <PackageReference Include="OllamaSharp" />
-	  <PackageReference Include="Tokenizers.HuggingFace" />
-	</ItemGroup>
-
-	<ItemGroup>
-	  <Reference Include="OpenAI.LocalModels.Llama">
-	    <HintPath>F:\Users\TommyCat\source\OpenAI.LocalModels.Llama\src\bin\Debug\net10.0\OpenAI.LocalModels.Llama.dll</HintPath>
-	  </Reference>
 	</ItemGroup>
 
 	<ItemGroup>

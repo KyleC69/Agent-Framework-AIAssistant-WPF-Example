@@ -1,12 +1,20 @@
-﻿using System.Windows;
+﻿using System;
+using System.Threading;
+using System.Windows;
 using System.Windows.Threading;
 
-using AgentOrch.ChatApp.Wpf.Controls;
-using AgentOrch.ChatApp.Wpf.ViewModels;
+using AgentOrchestration.Wpf.Controls;
+using AgentOrchestration.Wpf.ViewModels;
+
+using Microsoft.Extensions.AI;
 
 
 
-namespace AgentOrch.ChatApp.Wpf;
+
+namespace AgentOrchestration.Wpf;
+
+
+
 
 
 /// <summary>
@@ -14,7 +22,7 @@ namespace AgentOrch.ChatApp.Wpf;
 /// </summary>
 public partial class MainWindow : Window
 {
-    private DispatcherOperation? _pendingScroll;
+    private readonly DispatcherOperation? _pendingScroll;
 
 
 
@@ -31,7 +39,7 @@ public partial class MainWindow : Window
         DataContext = ViewModel;
 
 
-        //  Loaded += (_, _) => TestUILights();
+        _ = App.GetService<IChatClient>();
     }
 
 
@@ -52,10 +60,10 @@ public partial class MainWindow : Window
 
     private void TestUILights()
     {
-        var y = 0;
+        int y = 0;
         while (y < 200)
         {
-            for (var x = 0; x < 6; x++)
+            for (int x = 0; x < 6; x++)
             {
                 AIToolIndicatorHub.Pulse(x);
                 Thread.Sleep(200);
@@ -79,7 +87,7 @@ public partial class MainWindow : Window
             return;
         }
 
-        var lastItem = MessagesList.Items[MessagesList.Items.Count - 1];
+        object lastItem = MessagesList.Items[^1];
         MessagesList.ScrollIntoView(lastItem);
     }
 
@@ -92,7 +100,7 @@ public partial class MainWindow : Window
 
     private void Window_Loaded(object sender, RoutedEventArgs e)
     {
-        AIToolIndicatorHub.Register(ToolIndicators);
+        //  AIToolIndicatorHub.Register(ToolIndicators);
         _ = ViewModel.ConfigureAgentAsync();
     }
 

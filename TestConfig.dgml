@@ -8,7 +8,7 @@
     <Node Id="@15" Category="CodeSchema_Property" Bounds="-128.461118436219,134.452348066726,92.5057281207148,25" CodeSchemaProperty_IsProtected="True" CommonLabel="Model" DelayedChildNodesState="NotFetched" DelayedCrossGroupLinksState="Fetched" Group="Collapsed" Icon="CodeSchema_Property" Label="Model" UseManualLocation="True" />
     <Node Id="@16" Category="CodeSchema_Field" Bounds="-58.6977405003404,305.412439972584,90.6466666666667,25.96" CodeSchemaProperty_IsPrivate="True" CodeSchemaProperty_IsStatic="True" CommonLabel="s_instance" DelayedCrossGroupLinksState="Fetched" Icon="CodeSchema_Field" Label="s_instance" />
     <Node Id="@17" Category="CodeSchema_Property" Bounds="-5.95539031550449,134.452348066775,136.969061454048,25" CodeSchemaProperty_IsProtected="True" CommonLabel="UseBingSearch" DelayedChildNodesState="NotFetched" DelayedCrossGroupLinksState="Fetched" Group="Collapsed" Icon="CodeSchema_Property" Label="UseBingSearch" UseManualLocation="True" />
-    <Node Id="@2" Category="CodeSchema_Assembly" AssemblyTimestamp="01/12/2026 08:48:59" Bounds="-521.81165868087,-198.560767743362,206.433333333333,104.0002" CodeSchemaProperty_StrongName="AgentOrch.ChatApp.Wpf, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null" CommonLabel="AgentOrch.ChatApp.Wpf" DelayedChildNodesState="Incomplete" DelayedCrossGroupLinksState="Fetched" FilePath="$(ddef642b-9423-48c6-a01b-67d742ef02e4.OutputPath)" Group="Expanded" Label="AgentOrch.ChatApp.Wpf.dll" />
+    <Node Id="@2" Category="CodeSchema_Assembly" AssemblyTimestamp="01/12/2026 08:48:59" Bounds="-521.81165868087,-198.560767743362,206.433333333333,104.0002" CodeSchemaProperty_StrongName="AgentOrchestration.Wpf, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null" CommonLabel="AgentOrchestration.Wpf" DelayedChildNodesState="Incomplete" DelayedCrossGroupLinksState="Fetched" FilePath="$(ddef642b-9423-48c6-a01b-67d742ef02e4.OutputPath)" Group="Expanded" Label="AgentOrchestration.Wpf.dll" />
     <Node Id="@4" Category="CodeSchema_Class" Bounds="-148.461123129077,-17.4679611290743,308.926685206095,196.92040919585" CodeSchemaProperty_IsAbstract="True" CodeSchemaProperty_IsPublic="True" CommonLabel="BaseTest" DelayedChildNodesState="Incomplete" DelayedCrossGroupLinksState="Fetched" Group="Expanded" Icon="CodeSchema_Class" Label="BaseTest" UseManualLocation="True" />
     <Node Id="@6" Category="CodeSchema_Class" Bounds="-78.6977405003404,265.412439972584,169.396666666667,141.92" CodeSchemaProperty_IsFinal="True" CodeSchemaProperty_IsPublic="True" CommonLabel="TestConfiguration" DelayedChildNodesState="Incomplete" DelayedCrossGroupLinksState="Fetched" Group="Expanded" Icon="CodeSchema_Class" Label="TestConfiguration" UseManualLocation="True" />
     <Node Id="@8" Category="CodeSchema_Method" Bounds="-58.6977405003404,361.372439972584,129.396666666667,25.96" CodeSchemaProperty_IsConstructor="True" CodeSchemaProperty_IsPrivate="True" CodeSchemaProperty_IsSpecialName="True" CommonLabel="TestConfiguration" DelayedCrossGroupLinksState="Fetched" Icon="CodeSchema_Method" Label="TestConfiguration" />
@@ -338,8 +338,8 @@
     </Style>
   </Styles>
   <Paths>
-    <Path Id="ddef642b-9423-48c6-a01b-67d742ef02e4.OutputPath" Value="D:\source\AgentOrch\src\AgentOrch.ChatApp.Wpf\bin\Debug\net10.0-windows\AgentOrch.ChatApp.Wpf.dll" />
-    <Path Id="ddef642b-9423-48c6-a01b-67d742ef02e4.OutputPathUri" Value="file:///D:/source/AgentOrch/src/AgentOrch.ChatApp.Wpf/bin/Debug/net10.0-windows/AgentOrch.ChatApp.Wpf.dll" />
+    <Path Id="ddef642b-9423-48c6-a01b-67d742ef02e4.OutputPath" Value="D:\source\AgentOrch\src\AgentOrchestration.Wpf\bin\Debug\net10.0-windows\AgentOrchestration.Wpf.dll" />
+    <Path Id="ddef642b-9423-48c6-a01b-67d742ef02e4.OutputPathUri" Value="file:///D:/source/AgentOrch/src/AgentOrchestration.Wpf/bin/Debug/net10.0-windows/AgentOrchestration.Wpf.dll" />
     <Path Id="ProgramFilesUri" Value="file:///C:/Program Files" />
   </Paths>
 </DirectedGraph>
