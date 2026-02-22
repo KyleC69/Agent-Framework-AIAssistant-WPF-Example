@@ -3,7 +3,7 @@
 
 
 
-namespace AgentOrchestration.Wpf;
+namespace AgentOrchestration.Wpf.Utils;
 
 
 

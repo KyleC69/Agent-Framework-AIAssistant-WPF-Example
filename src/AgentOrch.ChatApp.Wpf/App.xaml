@@ -22,7 +22,7 @@
             <SolidColorBrush x:Key="CodeBubbleBackgroundBrush" Color="{DynamicResource App.CodeBlockBackGroundColor}" />
             <SolidColorBrush x:Key="CodeBubbleForegroundBrush" Color="{DynamicResource App.CodeBlockForegroundColor}" />
 
-            <Color x:Key="App.BubbleAgentColor">#FF696969</Color>
+            <Color x:Key="App.BubbleAgentColor">#A09F9E</Color>
             <Color x:Key="App.BubbleSystemColor">#AA323A11</Color>
             <Color x:Key="App.BubbleForegroundColor">DarkBlue</Color>
 
@@ -45,6 +45,7 @@
 
             <ResourceDictionary.MergedDictionaries>
                 <ResourceDictionary Source="pack://application:,,,/Markdig.Wpf;component/Themes/Generic.xaml" />
+                <ResourceDictionary Source="pack://application:,,,/Wpf.Ui;component/Controls/Button/Button.xaml" />
             </ResourceDictionary.MergedDictionaries>
         </ResourceDictionary>
     </Application.Resources>

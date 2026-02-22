@@ -4,8 +4,11 @@ using System.Windows;
 using AgentOrchestration.Wpf.Agents;
 using AgentOrchestration.Wpf.Models;
 using AgentOrchestration.Wpf.Services;
+using AgentOrchestration.Wpf.ToolFunctions;
 using AgentOrchestration.Wpf.ViewModels;
 
+using Microsoft.Agents.AI.Workflows;
+using Microsoft.Agents.AI.Workflows.InProc;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -76,7 +79,7 @@ public partial class App : Application
                     builder.Sources.Clear();
                     _ = builder.AddConfiguration(configuration);
                 })
-                .ConfigureServices((_, services) => ConfigureServices(services, configuration))
+                .ConfigureServices((context, services) => ConfigureServices(services, configuration))
                 .Build();
         _host.Start();
 
@@ -145,46 +148,32 @@ public partial class App : Application
 
             _ = logging.AddConsole();
             _ = logging.AddDebug();
-            _ = logging.SetMinimumLevel(LogLevel.Trace);
             _ = logging.AddJsonConsole();
             _ = logging.AddSimpleConsole(options =>
             {
                 options.SingleLine = true;
                 options.TimestampFormat = "yyyy-MM-dd HH:mm:ss ";
             });
+            _ = logging.SetMinimumLevel(LogLevel.Trace);
         });
 
         OllamaOptions ollamaOptions = LoadOllamaOptions(configuration, "General");
         _ = services.AddSingleton<IChatClient>(_ => new OllamaApiClient(ollamaOptions.Url!, "llama3.2:1b"));
+        CheckpointManager manager = CheckpointManager.CreateInMemory();
+        InProcessExecutionEnvironment environment = InProcessExecution
+                .Lockstep
+                .WithCheckpointing(manager);
 
-
-
-
-
-
-
-        //      services.AddSingleton<CooperativeAgentsInitializer>();
-        _ = services.AddSingleton<ToolAgent2>();
-        _ = services.AddSingleton<ToolAgent3>();
-        _ = services.AddSingleton<MainViewModel>();
-        _ = services.AddSingleton<CoordinatorAgent>();
+        _ = services.AddSingleton<IWorkflowExecutionEnvironment>(environment);
+        _ = services.AddHttpClient();
+        _ = services.AddSingleton<WebSearchPlugin>();
         _ = services.AddSingleton<MainWindow>();
-        _ = services.AddSingleton<PlanningAgent>();
+        _ = services.AddSingleton<MainViewModel>();
         _ = services.AddSingleton<SeniorCoderAgent>();
         _ = services.AddSingleton<SeniorCoderAgent2>();
+        _ = services.AddSingleton<OrchestratorAgent>();
         _ = services.AddSingleton<QualityControlAgent>();
-        _ = services.AddSingleton<OrchestratorAgent>(sp =>
-        {
-            ToolAgent1 t1 = sp.GetRequiredService<ToolAgent1>();
-            ToolAgent2 t2 = sp.GetRequiredService<ToolAgent2>();
-            ToolAgent3 t3 = sp.GetRequiredService<ToolAgent3>();
-            var agentsAsTools = new[] { t3.Agent, t2.Agent, t1.Agent };
 
-            return new OrchestratorAgent(
-                    sp.GetRequiredService<IChatClient>(),
-                    agentsAsTools,
-                    sp.GetRequiredService<ILoggerFactory>());
-        });
 
     }
 

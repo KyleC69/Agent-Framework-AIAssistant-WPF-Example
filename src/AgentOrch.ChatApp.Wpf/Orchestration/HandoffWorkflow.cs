@@ -1,21 +1,10 @@
-﻿using System.Collections.Generic;
-
-using AgentOrchestration.Wpf.Agents;
-using AgentOrchestration.Wpf.ToolFunctions;
-
-using Microsoft.Agents.AI;
-using Microsoft.Agents.AI.Workflows;
-using Microsoft.Extensions.AI;
-using Microsoft.Extensions.DependencyInjection;
+﻿using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Logging;
 
 
 
 // Copyright (c) Microsoft. All rights reserved.
 
-
-
-#pragma warning disable MEAI001
 
 
 
@@ -123,52 +112,26 @@ public class DoubleSequentialWorkflow
 
     internal static class EntryPoint
     {
-        private static ILoggerFactory? _factory;
+        private static readonly ILoggerFactory? _factory;
 
 
 
 
 
-        public static Workflow WorkflowInstance => CreateWorkflow();
-
-
-
-
-
-
-
-
-        public static Workflow CreateWorkflow()
-        {
-            _ = new WebSearchPlugin();
-            _ = App.GetRequiredService<IChatClient>();
-            _factory = App.Services.GetRequiredService<ILoggerFactory>();
-
-            //  ChatClientAgent _coder1 = client..AsAIAgent(loggerFactory: _factory, instructions: GetSenior1(), tools: [AIFunctionFactory.Create(webSearchTool.WebSearch)]);
-            // ChatClientAgent reviewer = client.AsAIAgent(loggerFactory: _factory, instructions: GetReviewer(), tools: [AIFunctionFactory.Create(webSearchTool.WebSearch)]);
-            SeniorCoderAgent senior1 = App.GetRequiredService<SeniorCoderAgent>();
-
-            return AgentWorkflowBuilder.BuildSequential("Simple sequential workflow", senior1.Agent);
-        }
-
-
-
-
-
-
+        /*
 
 
         public static async IAsyncEnumerable<string> RunAsync(IWorkflowExecutionEnvironment executionEnvironment, string input)
         {
-            AIAgent hostAgent = WorkflowInstance.AsAIAgent("AssistantCoder", "Assistant1", executionEnvironment: executionEnvironment, description: "Simple 2 agent sequential workflow");
+      //      AIAgent hostAgent = WorkflowInstance.AsAIAgent("AssistantCoder", "Assistant1", executionEnvironment: executionEnvironment, description: "Simple 2 agent sequential workflow");
 
-            AgentSession session = await hostAgent.CreateSessionAsync();
+      //      AgentSession session = await hostAgent.CreateSessionAsync();
 
             AgentResponse response;
             ResponseContinuationToken? continuationToken = null;
             do
             {
-                response = await hostAgent.RunAsync(input, session, new AgentRunOptions { ContinuationToken = continuationToken });
+        //        response = await hostAgent.RunAsync(input, session, new AgentRunOptions { ContinuationToken = continuationToken });
             } while ((continuationToken = response.ContinuationToken) is not null);
 
             foreach (ChatMessage message in response.Messages)
@@ -176,6 +139,6 @@ public class DoubleSequentialWorkflow
                 //output the final response messages to the ui
                 yield return message.Text;
             }
-        }
+            */
     }
 }

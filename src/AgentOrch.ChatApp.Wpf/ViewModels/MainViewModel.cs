@@ -2,18 +2,12 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 
-using AgentOrchestration.Wpf.Orchestration;
+using AgentOrchestration.Wpf.Agents;
+using AgentOrchestration.Wpf.Models;
 
 using CommunityToolkit.Mvvm.Input;
 
-using Microsoft.Agents.AI;
-using Microsoft.Agents.AI.Workflows;
-using Microsoft.Agents.AI.Workflows.InProc;
-using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Logging;
-
-using ChatHistory = AgentOrchestration.Wpf.Models.ChatHistory;
-using ChatRole = Microsoft.Extensions.AI.ChatRole;
 
 
 
@@ -27,16 +21,12 @@ namespace AgentOrchestration.Wpf.ViewModels;
 public sealed class MainViewModel : BaseViewModel
 {
     private static ILoggerFactory? _factory;
-
     private readonly IRelayCommand _cancelCommand;
-    private readonly IWorkflowExecutionEnvironment _environment;
-    private readonly InProcessExecutionEnvironment _inproc;
-
     private readonly ILogger<MainViewModel> _logger;
-    private readonly CheckpointManager _manager;
     private readonly IAsyncRelayCommand _sendCommand;
 
     private bool _isConfigured;
+
     private CancellationTokenSource _sendCts = new();
 
 
@@ -58,9 +48,6 @@ public sealed class MainViewModel : BaseViewModel
         _logger = factory.CreateLogger<MainViewModel>();
 
 
-        _manager = CheckpointManager.CreateInMemory();
-        _inproc = InProcessExecution.Lockstep;
-        _environment = _inproc.WithCheckpointing(_manager);
     }
 
 
@@ -70,9 +57,8 @@ public sealed class MainViewModel : BaseViewModel
 
 
 
+    //Used to store UI messages
     public ChatHistory Messages { get; set; }
-
-    public bool IsModelReady { get; set; }
 
 
 
@@ -101,110 +87,6 @@ public sealed class MainViewModel : BaseViewModel
 
     #region Message handling and UI helpers
 
-    private void AddDecoratedMessage(ChatMessage message)
-    {
-        string? sender = TryGetAgentName(message);
-        string prefix = BuildSenderPrefix(sender, message.Role);
-        string content = GetMessageText(message);
-
-        if (!string.IsNullOrEmpty(prefix) && !content.StartsWith(prefix, StringComparison.Ordinal))
-        {
-            Messages.Add(new ChatMessage(message.Role, prefix + content));
-            return;
-        }
-
-        Messages.Add(message);
-    }
-
-
-
-
-
-
-
-
-    private static string BuildSenderPrefix(string? sender, ChatRole role)
-    {
-        return !string.IsNullOrWhiteSpace(sender) ? $"{sender} ({role}): " : $"{role}: ";
-    }
-
-
-
-
-
-
-
-
-    private static bool MessageHasPrefix(ChatMessage message, string prefix)
-    {
-        if (string.IsNullOrEmpty(prefix))
-        {
-            return true;
-        }
-
-        string content = GetMessageText(message);
-        return content.StartsWith(prefix, StringComparison.Ordinal);
-    }
-
-
-
-
-
-
-
-
-    private static string GetMessageText(ChatMessage message)
-    {
-        return message.Contents is null || message.Contents.Count == 0 ? string.Empty : string.Concat(message.Contents);
-    }
-
-
-
-
-
-
-
-
-    private static string? TryGetAgentName(object? source)
-    {
-        if (source is null)
-        {
-            return null;
-        }
-
-        object? agentName = source.GetType().GetProperty("AgentName")?.GetValue(source);
-        if (agentName is string name && !string.IsNullOrWhiteSpace(name))
-        {
-            return name;
-        }
-
-        object? agent = source.GetType().GetProperty("Agent")?.GetValue(source);
-        if (agent is not null)
-        {
-            object? nameValue = agent.GetType().GetProperty("Name")?.GetValue(agent);
-            if (nameValue is string agentNameValue && !string.IsNullOrWhiteSpace(agentNameValue))
-            {
-                return agentNameValue;
-            }
-        }
-
-        object? authorName = source.GetType().GetProperty("AuthorName")?.GetValue(source);
-        if (authorName is string author && !string.IsNullOrWhiteSpace(author))
-        {
-            return author;
-        }
-
-        object? fallbackName = source.GetType().GetProperty("Name")?.GetValue(source);
-        return fallbackName is string fallback && !string.IsNullOrWhiteSpace(fallback) ? fallback : null;
-    }
-
-
-
-
-
-
-
-
     /// <summary>
     ///     Sends the current draft message asynchronously using the configured AI agent.
     /// </summary>
@@ -219,26 +101,18 @@ public sealed class MainViewModel : BaseViewModel
     /// </exception>
     private async Task SendAsync()
     {
-
+        _logger.LogTrace("Entering SendAsync");
         IsBusy = true;
         _sendCts = new CancellationTokenSource();
 
-
-
         try
         {
-            AIAgent flow = DoubleSequentialWorkflow.EntryPoint.CreateWorkflow().AsAIAgent();
 
-            AgentResponse response = await flow.RunAsync(new ChatMessage(ChatRole.User, UserMessage));
-
-            foreach (ChatMessage message in response.Messages)
+            WorkflowAgentOrchestrator AI = new(_factory!.CreateLogger<WorkflowAgentOrchestrator>());
+            await foreach (string response in AI.RunGroupWorkflowStreamingAsync(UserMessage, _sendCts.Token))
             {
-                Messages.AddAssistantMessage(message.Text);
+                Messages.AddAssistantMessage(response);
             }
-        }
-        catch (OperationCanceledException)
-        {
-            _logger.LogInformation("Send operation canceled.");
         }
         catch (Exception ex) when (ex is InvalidOperationException or ArgumentException)
         {

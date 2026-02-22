@@ -1,18 +1,14 @@
 using System;
 using System.ComponentModel;
+using System.Net.Http;
+using System.Net.Http.Headers;
+using System.Text;
 using System.Text.Json;
+using System.Threading;
 using System.Threading.Tasks;
 
-using PuppeteerSharp;
 
 
-
-
-
-// ReSharper disable once UnusedMember.Global // Used by reflection
-
-
-// ReSharper disable UnusedMember.Global
 
 namespace AgentOrchestration.Wpf.ToolFunctions;
 
@@ -20,34 +16,22 @@ namespace AgentOrchestration.Wpf.ToolFunctions;
 
 
 
-public class WebSearchPlugin
+public sealed class WebSearchPlugin : IAsyncDisposable
 {
+    private readonly string _endPointUrl = "https://api.langsearch.com/v1/web-search";
+
+    private readonly HttpClient _httpClient;
 
 
 
 
 
-    [Description("Search the web for information about a topic and return summarized results with links.")]
-    public string? WebSearch(string query)
+
+
+
+    public WebSearchPlugin()
     {
-        // Replace with a real search API (Bing, SerpAPI, etc.). Demo returns stubbed JSON.
-
-        IBrowser browser = LoadBrowserAsync().Result;
-
-        IPage page = browser.NewPageAsync().Result;
-
-        page.DefaultNavigationTimeout = 60000; // Set navigation timeout to 60 seconds
-
-        // Need to navigate to a search engine and perform a search with the results being returned as json 
-        //so that the agent can parse the results and use it to answer the question. 
-        page.GoToAsync($"https://www.bing.com/search?q={Uri.EscapeDataString(query)}&format=rss").Wait();
-
-        page.WaitForNavigationAsync().Wait();
-        string result = page.GetContentAsync().Result ?? "Page did not return contents";
-
-        JsonDocument? doc = JsonDocument.Parse(result);
-
-        return doc is not null ? doc.RootElement.ToString() : "No results found.";
+        _httpClient = App.GetRequiredService<HttpClient>();
     }
 
 
@@ -57,51 +41,106 @@ public class WebSearchPlugin
 
 
 
-    private async Task<IBrowser> LoadBrowserAsync()
+    public async ValueTask DisposeAsync()
     {
+        await Task.CompletedTask;
+    }
 
 
-        LaunchOptions options = new()
+
+
+
+
+
+
+    [Description("Search the web for information about a topic and return summarized results with links.")]
+    public async Task<string> WebSearch(string strquery, int maxResults = 5, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(strquery))
         {
-            Channel = null,
-            Headless = true,
-            HeadlessMode = HeadlessMode.True,
-            SlowMo = 0,
-            Args = new[]
-                {
-                        "--no-sandbox",
-                        "--disable-gpu", "--disable-dev-shm-usage"
-                },
-            Timeout = 60000,
-            DumpIO = false,
-            IgnoreDefaultArgs = false,
-            Browser = SupportedBrowser.Chrome,
-            ProtocolTimeout = 30_000,
-            WaitForInitialPage = true,
-            ExecutablePath = "E:\\chrome-win64\\chrome.exe"
-        };
+            return "{Error: Query cannot be empty}";
+        }
+
+        if (maxResults <= 0)
+        {
+            return JsonSerializer.Serialize("Error: maxResults must be greater than 0.");
+        }
 
 
-        //safely startup the brower, and handle any exceptions that may occur during startup
+
         try
         {
-            Launcher launcher = new();
-            return await launcher.LaunchAsync(options);
+
+            using HttpRequestMessage request = new(HttpMethod.Post, _endPointUrl);
+
+            request.Headers.UserAgent.ParseAdd("IT-Companion-WebSearchPlugin/1.0-AIAgentAssistant");
+            string? apiKey = Environment.GetEnvironmentVariable("LANGAPI_KEY");
+            if (string.IsNullOrWhiteSpace(apiKey))
+            {
+                return JsonSerializer.Serialize("Error: Missing LANGAPI_KEY environment variable.");
+            }
+
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", apiKey);
+
+            var body = new
+            {
+                query = strquery,
+                count = maxResults,
+                freshness = "oneMonth",
+                summary = false
+            };
+
+
+            JsonSerializerOptions options = new()
+            {
+                PropertyNameCaseInsensitive = true,
+                WriteIndented = true
+            };
+
+            string jsonBody = JsonSerializer.Serialize(body, options);
+            request.Content = new StringContent(jsonBody, Encoding.UTF8, "application/json");
+
+            HttpResponseMessage response = await _httpClient.SendAsync(request, cancellationToken);
+            if (!response.IsSuccessStatusCode)
+            {
+                string errorBody = await response.Content.ReadAsStringAsync(cancellationToken);
+                return JsonSerializer.Serialize($"Error: HTTP {(int)response.StatusCode} {response.ReasonPhrase}. {errorBody}");
+            }
+
+            string jsonResponse = await response.Content.ReadAsStringAsync(cancellationToken);
+            string jsonNorm;
+            try
+            {
+                jsonNorm = jsonResponse.Normalize(NormalizationForm.FormKC);
+            }
+            catch (ArgumentException)
+            {
+                return JsonSerializer.Serialize("Error: Invalid Unicode content in response.");
+            }
+
+            JsonDocument doc;
+            try
+            {
+                doc = JsonDocument.Parse(jsonNorm);
+            }
+            catch (JsonException)
+            {
+                return jsonResponse;
+            }
+
+            // 3. Pretty-print
+            string pretty = JsonSerializer.Serialize(doc, new JsonSerializerOptions
+            {
+                WriteIndented = true
+            });
+
+            return pretty;
+
+
         }
-        catch (Exception ex)
+        catch (Exception)
         {
-            // Log the exception and re-throw or handle it appropriately
-            // For this example, we'll just re-throw
-            throw new InvalidOperationException("Failed to launch browser.", ex);
+            return JsonSerializer.Serialize("Unexpected error while performing web search.");
         }
-
-
-
-
-
-
-
-
-
     }
 }

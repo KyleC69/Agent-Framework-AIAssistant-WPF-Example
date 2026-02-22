@@ -5,7 +5,7 @@ using System.Windows.Data;
 
 
 
-namespace AgentOrchestration.Wpf;
+namespace AgentOrchestration.Wpf.Controls;
 
 
 
@@ -42,5 +42,7 @@ public sealed class BubbleMaxWidthConverter : IValueConverter
 
 
     public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
-        => throw new NotSupportedException();
+    {
+        throw new NotSupportedException();
+    }
 }

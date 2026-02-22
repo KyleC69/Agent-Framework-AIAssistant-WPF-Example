@@ -4,15 +4,15 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:ai="clr-namespace:Microsoft.Extensions.AI;assembly=Microsoft.Extensions.AI.Abstractions"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:controls="clr-namespace:AgentOrchestration.Wpf.Controls"
-        xmlns:local="clr-namespace:AgentOrchestration.Wpf"
+        xmlns:ui1="http://schemas.lepo.co/wpfui/2022/xaml"
+        xmlns:controls1="clr-namespace:AgentOrchestration.Wpf.Controls"
         mc:Ignorable="d" Loaded="Window_Loaded"
         Title="Agent Framework Example Chat" Height="800" Width="1200"
         Background="{DynamicResource App.WindowBackgroundBrush}">
 
 
     <Window.Resources>
-        <local:BubbleMaxWidthConverter x:Key="BubbleMaxWidthConverter" />
+        <controls1:BubbleMaxWidthConverter x:Key="BubbleMaxWidthConverter" />
 
         <CornerRadius x:Key="BubbleRadius">12</CornerRadius>
 
@@ -31,7 +31,9 @@
                     Style="{StaticResource BubbleBorderStyle}"
                     Background="{StaticResource UserBubbleBrush}"
                     Padding="8,6">
-                    <TextBox
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                        <Label Content="User: " FontSize="10" HorizontalAlignment="Left" Margin="4,0,0,0" Foreground="{StaticResource BubbleForegroundBrush}" />
+                        <TextBox
                         Text="{Binding Text}"
                         TextWrapping="Wrap"
                         BorderThickness="0"
@@ -39,6 +41,7 @@
                         Foreground="{StaticResource CodeBubbleForegroundBrush}"
                         IsReadOnly="True"
                         IsReadOnlyCaretVisible="True" />
+                    </StackPanel>
                 </Border>
             </Grid>
         </DataTemplate>
@@ -47,12 +50,31 @@
             <Grid Margin="12,6">
                 <Border
                     Style="{StaticResource BubbleBorderStyle}"
-                    Background="{StaticResource AgentBubbleBrush}"
+                    Background="{StaticResource App.BubbleSystemBrush}"
                     Padding="12,10">
-                    <controls:MarkdownTextBlock MarkdownText="{Binding Text}" />
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                        <Label Content="Agent" FontSize="10" HorizontalAlignment="Left" Margin="4,0,0,0" Foreground="{StaticResource BubbleForegroundBrush}" />
+                        <controls1:MarkdownTextBlock MarkdownText="{Binding Text}" Foreground="#FF120552" Background="{DynamicResource {x:Static SystemColors.ControlDarkDarkBrushKey}}"  />
+                    </StackPanel>
                 </Border>
             </Grid>
         </DataTemplate>
+
+        <DataTemplate x:Key="ToolMessageTemplate" DataType="{x:Type ai:ChatMessage}">
+            <Grid Margin="12,6">
+                <Border
+                    Style="{StaticResource BubbleBorderStyle}"
+                    Background="{StaticResource App.BubbleSystemBrush}"
+                    Padding="12,10">
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                        <Label Content="Tool" FontSize="10" HorizontalAlignment="Left" Margin="4,0,0,0" Foreground="{StaticResource BubbleForegroundBrush}" />
+                        <controls1:MarkdownTextBlock MarkdownText="{Binding Text}" Foreground="#FF120552" Background="{DynamicResource {x:Static SystemColors.ControlDarkDarkBrushKey}}"  />
+                    </StackPanel>
+                </Border>
+            </Grid>
+        </DataTemplate>
+
+
 
         <DataTemplate x:Key="SystemMessageTemplate" DataType="{x:Type ai:ChatMessage}">
             <Grid Margin="12,6">
@@ -61,7 +83,10 @@
                     Background="{StaticResource SystemBubbleBrush}"
                     Padding="12,10"
                     Opacity="0.9">
-                    <controls:MarkdownTextBlock MarkdownText="{Binding Text}" />
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                        <Label Content="System" FontSize="10" HorizontalAlignment="Left" Margin="4,0,0,0" Foreground="{StaticResource BubbleForegroundBrush}" />
+                        <controls1:MarkdownTextBlock MarkdownText="{Binding Text}" />
+                    </StackPanel>
                 </Border>
             </Grid>
         </DataTemplate>
@@ -144,7 +169,7 @@
                  Style="{StaticResource MessageListStyle}"
                  ItemsSource="{Binding Messages}"
                  SelectionMode="Extended" d:ItemsSource="{d:SampleData ItemCount=5}"
-                 Foreground="{DynamicResource App.ListForegroundBrush}" Width="942" Padding="25,0,25,0"
+                 Foreground="{DynamicResource App.ListForegroundBrush}" Width="1000" Padding="25,0,25,0"
                  Grid.IsSharedSizeScope="True" HorizontalAlignment="Left" Margin="228,0,0,0" Grid.ColumnSpan="2">
             <ListBox.ItemContainerStyle>
                 <Style TargetType="ListBoxItem">
@@ -176,8 +201,10 @@
                                         <Setter Property="ContentTemplate" Value="{StaticResource UserMessageTemplate}" />
                                     </DataTrigger>
                                     <DataTrigger Binding="{Binding Role}" Value="System">
-                                        <Setter Property="ContentTemplate"
-                                                Value="{StaticResource SystemMessageTemplate}" />
+                                        <Setter Property="ContentTemplate" Value="{StaticResource SystemMessageTemplate}" />
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding Role}" Value="Tool">
+                                        <Setter Property="ContentTemplate" Value="{StaticResource ToolMessageTemplate}" />
                                     </DataTrigger>
                                 </Style.Triggers>
                             </Style>
@@ -186,8 +213,10 @@
                 </DataTemplate>
             </ListBox.ItemTemplate>
         </ListBox>
-        <Border Grid.Row="2" Grid.ColumnSpan="2" BorderThickness="5" Background="{DynamicResource App.SurfaceBrush}"
-                Padding="16,12">
+
+
+        <Border Grid.Row="2" Name="TextboxWrapper" Grid.ColumnSpan="2" BorderThickness="1" CornerRadius="15" Background="{DynamicResource App.SurfaceBrush}"
+                Padding="8,8">
             <Grid>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*" />
@@ -196,32 +225,38 @@
                     <ColumnDefinition Width="12" />
                     <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
-                <Border Background="{DynamicResource App.WindowBackgroundBrush}"
-                        CornerRadius="{StaticResource BubbleRadius}" Padding="3">
+                <Border Name="InnerBorder" 
+                        CornerRadius="{StaticResource BubbleRadius}"
+                        BorderThickness="6"
+                        BorderBrush="{DynamicResource App.BubbleAgentBrush}">
+
+
                     <TextBox
                         x:Name="MessageTextBox"
+                        
                         Text="{Binding UserMessage, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                        Background="{DynamicResource App.WindowBackgroundBrush}"
-                        Foreground="{DynamicResource App.TextPrimaryBrush}"
-                        BorderBrush="{DynamicResource App.ControlSurfaceBrush}"
-                        Padding="12,10"
+                        Background="{DynamicResource App.BubbleAgentBrush}"
+                        Foreground="{DynamicResource App.BubbleForegroundBrush}"
+                        Padding="10,10"
                         FontSize="14"
                         MinHeight="40"
-
+                        BorderThickness="0"
                         VerticalContentAlignment="Center" AcceptsReturn="True" />
                 </Border>
-                <Button
+                <ui1:Button
                     Grid.Column="5"
+                    Appearance="Primary"
                     Content="Send"
-                    Command="{Binding SendCommand}"
-                    IsDefault="True"
-                    Padding="16,10"
-                    MinHeight="44"
-                    Background="{DynamicResource App.AccentBrush}"
-                    Foreground="{DynamicResource App.TextPrimaryBrush}"
-                    BorderBrush="Transparent" />
+                    
+                Command="{Binding SendCommand}"
+                IsDefault="True"
+                Padding="20,10"
+                MinHeight="44"
+                Background="{DynamicResource App.BubbleAgentBrush}"
+                Foreground="{DynamicResource App.BubbleForegroundBrush}"
+                BorderBrush="Transparent" />
 
-                <Button
+                <ui1:Button
                     Grid.Column="4"
                     Content="Cancel"
                     Command="{Binding CancelCommand}"
@@ -230,7 +265,7 @@
                     Background="{DynamicResource App.ControlSurfaceBrush}"
                     Foreground="{DynamicResource App.TextPrimaryBrush}"
                     BorderBrush="Transparent">
-                    <Button.Style>
+                    <ui1:Button.Style>
                         <Style TargetType="{x:Type Button}">
                             <Setter Property="Visibility" Value="Collapsed" />
                             <Style.Triggers>
@@ -239,8 +274,8 @@
                                 </DataTrigger>
                             </Style.Triggers>
                         </Style>
-                    </Button.Style>
-                </Button>
+                    </ui1:Button.Style>
+                </ui1:Button>
             </Grid>
         </Border>
 
